@@ -1,16 +1,23 @@
 import React from 'react';
+import './header.css'
 
 function Header() {
   return (
-    <header>
-      <nav>
-        <ul>
-          <li><a href="/">Home</a></li>
-          <li><a href="/about">About</a></li>
-          <li><a href="/contact">Contact</a></li>
-        </ul>
-      </nav>
-    </header>
+<section className='nav'>
+    <div className='logo'>Freight Flow</div>
+
+    <input id='menu-toggle' type="checkbox" />
+    <label className='menu-button-container' for="menu-toggle">
+        <div className='menu-button'></div>
+    </label>
+    <ul className='menu'>
+        <li>Home</li>
+        <li>Search</li>
+        <li>Map</li>
+        <li>User</li>
+    </ul>
+
+</section>
   );
 }
 

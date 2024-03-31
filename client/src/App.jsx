@@ -1,12 +1,13 @@
 import React from 'react';
 import './App.css';
+import Header from'./components/Header.jsx'
 
 function App() {
   return (
     <div className="App">
-      <header className="App-header">
-        <h1>Welcome to Freight Flow</h1>
-      </header>
+ 
+        <Header />
+ 
       <main>
         {/*  main content here */}
       </main>
