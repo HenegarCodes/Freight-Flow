@@ -1,10 +1,10 @@
 import React from 'react';
+import './home.css'
 
 function Home() {
   return (
-    <div className="main-content">
-      <h2>Welcome to Freight Flow</h2>
-      <p>This is the home page content.</p>
+    <div className="container">
+        <img src="./Homepage.jpg" alt="Truck on the road picture" id='HomepagePic'/>
     </div>
   );
 }

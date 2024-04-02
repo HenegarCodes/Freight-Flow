@@ -20,7 +20,7 @@
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
-    background-color: #6c757d;
+    background-color: #4c5156;
     color: #6f42c1;
     height: 65px;
     padding: 1em;
@@ -139,5 +139,7 @@
    
     }
   }
+  
+
   
   

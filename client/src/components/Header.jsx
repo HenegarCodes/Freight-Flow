@@ -11,8 +11,7 @@ function Header() {
         <div className='menu-button'></div>
     </label>
     <ul className='menu'>
-        <li>Home</li>
-        <li>Search</li>
+        <li>Dashboard</li>
         <li>Map</li>
         <li>User</li>
     </ul>
