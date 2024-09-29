@@ -1,101 +1,78 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import './form.css';
+
 
 function Signup() {
-    const [username, setUsername] = useState("");
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const navigate = useNavigate();
+  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);  // Add success state
+  const navigate = useNavigate();
 
-    //check for errors
-    const [submitted, setSubmitted] = useState(false);
-    const [error, setError] = useState(false);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');  // Reset any previous error
+    setSuccess(false);  // Reset success message
 
-    //name change
-    const handleUsername = (e) => {
-        setUsername(e.target.value);
-        setSubmitted(false);
-    };
-    
-    //password change
-    const handlePassword = (e) => {
-        setPassword(e.target.value);
-        setSubmitted(false);
-        };
-
-    //email change
-    const handleEmail = (e) => {
-        setEmail(e.target.value);
-        setSubmitted(false);
-    };
-
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        if (name === ' '|| email === '' || password === ''){
-            setError(true);
-        } else {
-            setSubmitted(true);
-            setError(false);
-        }
+    // Validate form inputs
+    if (!username || !email || !password) {
+      setError('Please fill in all fields');
+      return;
     }
-    const successMessage = () => {
-        return (
-        <div
-        className="success"
-        style={{
-        display: submitted ? '' : 'none',
-        }}>
-        <h1>User {username} successfully registered!!</h1>
-        </div>
-        );
-        };
 
+    try {
+      const response = await axios.post(`${process.env.REACT_APP_API_URL}/auth/signup`, { username, email, password });
+      localStorage.setItem('token', response.data.token); // Store token in localStorage
+      setSuccess(true);  // Set success message
+      navigate('/dashboard');  // Redirect to dashboard on successful signup
+    } catch (error) {
+      setError(error.response?.data?.message || 'Signup failed, please try again');
+    }
+  };
 
-  //error if not filled out properly
-  const errorMessage = () => {
-    return (
-    <div
-    className="error"
-    style={{
-    display: error ? '' : 'none',
-    }}>
-    <h1>Please enter all the fields</h1>
-    </div>
-    );
-    };
-    return (
-        <div className="form">
-        <div>
-        <h1> Sign up</h1>
-        </div>
-        
-        {/* Calling to the methods */}
-        <div className="messages">
-        {errorMessage()}
-        {successMessage()}
-        </div>
-        
-        <form>
-        {/* Labels and inputs for form data */}
+  return (
+    <div className="form">
+      <h1>Sign Up</h1>
+      
+      {/* Display success and error messages */}
+      {error && <div className="error-message">{error}</div>}
+      {success && <div className="success-message">User {username} successfully registered!</div>}
+
+      <form onSubmit={handleSubmit}>
         <label className="label">Username</label>
-        <input onChange={handleUsername} className="input"
-        value={username} type="text" />
+        <input 
+          onChange={(e) => setUsername(e.target.value)} 
+          className="input" 
+          value={username} 
+          type="text" 
+          required 
+        />
         
         <label className="label">Email</label>
-        <input onChange={handleEmail} className="input"
-        value={email} type="email" />
+        <input 
+          onChange={(e) => setEmail(e.target.value)} 
+          className="input" 
+          value={email} 
+          type="email" 
+          required 
+        />
         
         <label className="label">Password</label>
-        <input onChange={handlePassword} className="input"
-        value={password} type="password" />
+        <input 
+          onChange={(e) => setPassword(e.target.value)} 
+          className="input" 
+          value={password} 
+          type="password" 
+          required 
+        />
         
-        <button onClick={handleSubmit} className="btn" type="submit">
-        Submit
-        </button>
-        </form>
-        </div>
-        );
-        }
+        <button type="submit" className="btn">Submit</button>
+      </form>
+    </div>
+  );
+}
 
 export default Signup;

@@ -35,9 +35,9 @@ async function startApolloServer(typeDefs, resolvers) {
   apolloServer.applyMiddleware({ app });
   return apolloServer;
 }
-
-// MongoDB connection
-mongoose.connect("mongodb+srv://henegarlearnscode:Leishy415!@freightflow.j1xkvdl.mongodb.net/FreightFlow?retryWrites=true&w=majority&appName=FreightFlow")
+//mongodb+srv://henegarlearnscode:Leishy415!@freightflow.j1xkvdl.mongodb.net/FreightFlow?retryWrites=true&w=majority&appName=FreightFlow
+// MongoDB connection process.env.MONGO_URI
+mongoose.connect(process.env.MONGO_URI)
   .then(() => {
     console.log("MongoDB connected successfully");
     // Start Apollo Server only after MongoDB connects

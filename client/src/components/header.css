@@ -16,6 +16,20 @@
     color:white;
   }
   
+  .logout-button {
+    background: none;
+    border: none;
+    color: #fff;
+    cursor: pointer;
+    font-size: 1rem;
+    text-decoration: underline;
+    margin: 0;
+  }
+  
+  .logout-button:hover {
+    color: #f00;
+  }
+  
   .nav {
     display: flex;
     flex-direction: row;
