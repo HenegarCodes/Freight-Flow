@@ -3,7 +3,7 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
 function Signup() {
-    const [name, setName] = useState("");
+    const [username, setUsername] = useState("");
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const navigate = useNavigate();
@@ -13,8 +13,8 @@ function Signup() {
     const [error, setError] = useState(false);
 
     //name change
-    const handleName = (e) => {
-        setName(e.target.value);
+    const handleUsername = (e) => {
+        setUsername(e.target.value);
         setSubmitted(false);
     };
     
@@ -46,7 +46,7 @@ function Signup() {
         style={{
         display: submitted ? '' : 'none',
         }}>
-        <h1>User {name} successfully registered!!</h1>
+        <h1>User {username} successfully registered!!</h1>
         </div>
         );
         };
@@ -78,9 +78,9 @@ function Signup() {
         
         <form>
         {/* Labels and inputs for form data */}
-        <label className="label">Name</label>
-        <input onChange={handleName} className="input"
-        value={name} type="text" />
+        <label className="label">Username</label>
+        <input onChange={handleUsername} className="input"
+        value={username} type="text" />
         
         <label className="label">Email</label>
         <input onChange={handleEmail} className="input"

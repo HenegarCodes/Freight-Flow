@@ -37,7 +37,7 @@ async function startApolloServer(typeDefs, resolvers) {
 }
 
 // MongoDB connection
-mongoose.connect("mongodb+srv://henegarlearnscode:Leishy415!@freightflow.j1xkvdl.mongodb.net/?retryWrites=true&w=majority&appName=FreightFlow")
+mongoose.connect("mongodb+srv://henegarlearnscode:Leishy415!@freightflow.j1xkvdl.mongodb.net/FreightFlow?retryWrites=true&w=majority&appName=FreightFlow")
   .then(() => {
     console.log("MongoDB connected successfully");
     // Start Apollo Server only after MongoDB connects
