@@ -1,14 +1,12 @@
 {
-  "name": "server",
+  "name": "freight-flow-backend",
   "version": "1.0.0",
-  "description": "",
+  "description": "Backend for Freight Flow",
   "main": "app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node app.js",
+    "dev": "nodemon app.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "dependencies": {
     "apollo-server-express": "^3.13.0",
     "bcrypt": "^5.1.1",
@@ -19,5 +17,8 @@
     "graphql": "^16.9.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.5.2"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.22"
   }
 }
