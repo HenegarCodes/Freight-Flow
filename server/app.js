@@ -4,6 +4,9 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 require('dotenv').config();
 const authRoutes = require('./routes/authRoutes');
+//import Radar from '@radarlabs/radar';
+
+//Radar.initialize('prj_live_sk_d13b51ccc234caf4ea4d0c92f065fcd5ca67036d');
 
 const app = express();
 const PORT = process.env.PORT || 5001;

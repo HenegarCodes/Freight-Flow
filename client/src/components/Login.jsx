@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
 function Login() {
@@ -6,11 +7,16 @@ function Login() {
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    // add logic for handling sign inx here
-    navigate('/dashboard');
-  };
+    try {
+        await axios.post(`${process.env.REACT_APP_API_URL}/auth/login`, { email, password });
+        navigate('/dashboard');
+    } catch (error) {
+        alert('Login failed: ' + (error.response?.data?.message || 'Invalid credentials'));
+    }
+};
+
 
   return (
     <div>

@@ -3,43 +3,99 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
 function Signup() {
+    const [name, setName] = useState("");
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const navigate = useNavigate();
 
-    const handleSignup = async (event) => {
-        event.preventDefault();
-        try {
-            // API request to the backend
-            await axios.post('http://localhost:5001/api/auth/signup', { email, password });
-            navigate('/login');  // Redirect user to login page upon successful signup
-        } catch (error) {
-            alert('Failed to sign up: ' + (error.response?.data?.message || 'Unknown error'));
-        }
+    //check for errors
+    const [submitted, setSubmitted] = useState(false);
+    const [error, setError] = useState(false);
+
+    //name change
+    const handleName = (e) => {
+        setName(e.target.value);
+        setSubmitted(false);
+    };
+    
+    //password change
+    const handlePassword = (e) => {
+        setPassword(e.target.value);
+        setSubmitted(false);
+        };
+
+    //email change
+    const handleEmail = (e) => {
+        setEmail(e.target.value);
+        setSubmitted(false);
     };
 
-    return (
-        <div>
-            <h1>Signup Page</h1>
-            <form onSubmit={handleSignup}>
-                <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Email"
-                    required
-                />
-                <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Password"
-                    required
-                />
-                <button type="submit">Signup</button>
-            </form>
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        if (name === ' '|| email === '' || password === ''){
+            setError(true);
+        } else {
+            setSubmitted(true);
+            setError(false);
+        }
+    }
+    const successMessage = () => {
+        return (
+        <div
+        className="success"
+        style={{
+        display: submitted ? '' : 'none',
+        }}>
+        <h1>User {name} successfully registered!!</h1>
         </div>
+        );
+        };
+
+
+  //error if not filled out properly
+  const errorMessage = () => {
+    return (
+    <div
+    className="error"
+    style={{
+    display: error ? '' : 'none',
+    }}>
+    <h1>Please enter all the fields</h1>
+    </div>
     );
-}
+    };
+    return (
+        <div className="form">
+        <div>
+        <h1> Sign up</h1>
+        </div>
+        
+        {/* Calling to the methods */}
+        <div className="messages">
+        {errorMessage()}
+        {successMessage()}
+        </div>
+        
+        <form>
+        {/* Labels and inputs for form data */}
+        <label className="label">Name</label>
+        <input onChange={handleName} className="input"
+        value={name} type="text" />
+        
+        <label className="label">Email</label>
+        <input onChange={handleEmail} className="input"
+        value={email} type="email" />
+        
+        <label className="label">Password</label>
+        <input onChange={handlePassword} className="input"
+        value={password} type="password" />
+        
+        <button onClick={handleSubmit} className="btn" type="submit">
+        Submit
+        </button>
+        </form>
+        </div>
+        );
+        }
 
 export default Signup;
