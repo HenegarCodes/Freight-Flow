@@ -11,7 +11,13 @@ const authRoutes = require('./routes/authRoutes');
 const app = express();
 const PORT = process.env.PORT || 5001;
 
-app.use(cors());
+// Allow requests from the frontend on Vercel
+const corsOptions = {
+  origin: 'https://freight-flow.vercel.app/',  
+  optionsSuccessStatus: 200,
+};
+
+app.use(cors(corsOptions));  // Apply the CORS middleware
 app.use(express.json()); // Middleware to parse JSON bodies
 app.use('/api/auth', authRoutes);
 
