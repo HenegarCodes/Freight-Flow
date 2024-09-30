@@ -4,97 +4,16 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 require('dotenv').config();
 const authRoutes = require('./routes/authRoutes');
-//import Radar from '@radarlabs/radar';
-
-//Radar.initialize('prj_live_sk_d13b51ccc234caf4ea4d0c92f065fcd5ca67036d');
 
 const app = express();
 const PORT = process.env.PORT || 5001;
 
-// Allow requests from the frontend on Vercel
-// CORS Configuration
-const corsOptions = {
-  origin: 'https://freight-flow.vercel.app',  // Allow only your Vercel frontend
-  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-  credentials: true,  // If you need to allow cookies
-  optionsSuccessStatus: 204,
-};
+// Middleware
+app.use(cors()); // Apply CORS middleware
+app.use(express.json()); // Middleware to parse JSON bodies
 
-// Apply CORS middleware before any routes
-app.use(cors(corsOptions));
-
-// Other middleware (like body parsers, etc.)
-app.use(express.json());const express = require('express');
-const { ApolloServer, gql } = require('apollo-server-express');
-const mongoose = require('mongoose');
-const path = require('path');  // Required to serve frontend static files
-require('dotenv').config();
-const authRoutes = require('./routes/authRoutes');
-
-const app = express();
-const PORT = process.env.PORT || 5001;
-
-// Middleware to parse JSON requests
-app.use(express.json());
-
-// MongoDB connection
-mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
-  .then(() => console.log("MongoDB connected successfully"))
-  .catch(err => console.error("MongoDB connection error:", err));
-
-// API routes
+// Define routes for authentication
 app.use('/api/auth', authRoutes);
-
-// GraphQL Setup
-const typeDefs = gql`
-  type Query {
-    hello: String
-  }
-`;
-
-const resolvers = {
-  Query: {
-    hello: () => 'Hello from GraphQL!',
-  },
-};
-
-// Start Apollo Server for GraphQL
-async function startApolloServer(typeDefs, resolvers) {
-  const apolloServer = new ApolloServer({ typeDefs, resolvers });
-  await apolloServer.start();
-  apolloServer.applyMiddleware({ app });
-  console.log(`GraphQL available at http://localhost:${PORT}${apolloServer.graphqlPath}`);
-}
-
-// Start Apollo server after MongoDB connection is established
-startApolloServer(typeDefs, resolvers);
-
-// Serve React frontend in production
-if (process.env.NODE_ENV === 'production') {
-  // Serve static files from the React app
-  app.use(express.static(path.join(__dirname, '../frontend/build')));
-
-  // Catch-all route to serve the React app
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../frontend/build', 'index.html'));
-  });
-}
-
-// Basic route
-app.get('/', (req, res) => {
-  res.send('Hello from Freight Flow API');
-});
-
-// Start the server
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
-
-
-// Your routes
-app.use('/api/auth', require('./routes/authRoutes'));
-
-
 
 // Define a simple GraphQL schema and resolver
 const typeDefs = gql`
@@ -109,18 +28,22 @@ const resolvers = {
   },
 };
 
-// Create and apply the Apollo Server as middleware to the Express application
+// Function to start Apollo Server
 async function startApolloServer(typeDefs, resolvers) {
   const apolloServer = new ApolloServer({ typeDefs, resolvers });
   await apolloServer.start();
-  apolloServer.applyMiddleware({ app });
+  apolloServer.applyMiddleware({ app }); // Attach Apollo Server to Express app
   return apolloServer;
 }
-//mongodb+srv://henegarlearnscode:Leishy415!@freightflow.j1xkvdl.mongodb.net/FreightFlow?retryWrites=true&w=majority&appName=FreightFlow
-// MongoDB connection process.env.MONGO_URI
-mongoose.connect(process.env.MONGO_URI)
+
+// Connect to MongoDB and start the server
+mongoose.connect(process.env.MONGO_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+})
   .then(() => {
     console.log("MongoDB connected successfully");
+
     // Start Apollo Server only after MongoDB connects
     startApolloServer(typeDefs, resolvers).then(apolloServer => {
       // Start the Express server
@@ -130,9 +53,11 @@ mongoose.connect(process.env.MONGO_URI)
       });
     });
   })
-  .catch(err => console.log(err));
+  .catch(err => {
+    console.error("MongoDB connection error:", err);
+  });
 
-// Define a basic Express route
+// Basic route to check if the server is running
 app.get('/', (req, res) => {
   res.send('Hello from Freight Flow API');
 });
