@@ -24,7 +24,72 @@ const corsOptions = {
 app.use(cors(corsOptions));
 
 // Other middleware (like body parsers, etc.)
+app.use(express.json());const express = require('express');
+const { ApolloServer, gql } = require('apollo-server-express');
+const mongoose = require('mongoose');
+const path = require('path');  // Required to serve frontend static files
+require('dotenv').config();
+const authRoutes = require('./routes/authRoutes');
+
+const app = express();
+const PORT = process.env.PORT || 5001;
+
+// Middleware to parse JSON requests
 app.use(express.json());
+
+// MongoDB connection
+mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
+  .then(() => console.log("MongoDB connected successfully"))
+  .catch(err => console.error("MongoDB connection error:", err));
+
+// API routes
+app.use('/api/auth', authRoutes);
+
+// GraphQL Setup
+const typeDefs = gql`
+  type Query {
+    hello: String
+  }
+`;
+
+const resolvers = {
+  Query: {
+    hello: () => 'Hello from GraphQL!',
+  },
+};
+
+// Start Apollo Server for GraphQL
+async function startApolloServer(typeDefs, resolvers) {
+  const apolloServer = new ApolloServer({ typeDefs, resolvers });
+  await apolloServer.start();
+  apolloServer.applyMiddleware({ app });
+  console.log(`GraphQL available at http://localhost:${PORT}${apolloServer.graphqlPath}`);
+}
+
+// Start Apollo server after MongoDB connection is established
+startApolloServer(typeDefs, resolvers);
+
+// Serve React frontend in production
+if (process.env.NODE_ENV === 'production') {
+  // Serve static files from the React app
+  app.use(express.static(path.join(__dirname, '../frontend/build')));
+
+  // Catch-all route to serve the React app
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../frontend/build', 'index.html'));
+  });
+}
+
+// Basic route
+app.get('/', (req, res) => {
+  res.send('Hello from Freight Flow API');
+});
+
+// Start the server
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
+
 
 // Your routes
 app.use('/api/auth', require('./routes/authRoutes'));
