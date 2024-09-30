@@ -12,14 +12,24 @@ const app = express();
 const PORT = process.env.PORT || 5001;
 
 // Allow requests from the frontend on Vercel
+// CORS Configuration
 const corsOptions = {
-  origin: 'https://freight-flow.vercel.app/',  
-  optionsSuccessStatus: 200,
+  origin: 'https://freight-flow.vercel.app',  // Allow only your Vercel frontend
+  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+  credentials: true,  // If you need to allow cookies
+  optionsSuccessStatus: 204,
 };
 
-app.use(cors(corsOptions));  // Apply the CORS middleware
-app.use(express.json()); // Middleware to parse JSON bodies
-app.use('/api/auth', authRoutes);
+// Apply CORS middleware before any routes
+app.use(cors(corsOptions));
+
+// Other middleware (like body parsers, etc.)
+app.use(express.json());
+
+// Your routes
+app.use('/api/auth', require('./routes/authRoutes'));
+
+
 
 // Define a simple GraphQL schema and resolver
 const typeDefs = gql`
