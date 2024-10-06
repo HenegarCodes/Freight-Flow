@@ -1,8 +1,9 @@
 const express = require('express');
 const { ApolloServer, gql } = require('apollo-server-express');
 const mongoose = require('mongoose');
-const cors = require('cors');
+const path = require('path');  // Required to serve frontend static files
 require('dotenv').config();
+const cors = require('cors');
 const authRoutes = require('./routes/authRoutes');
 
 const app = express();
@@ -45,11 +46,11 @@ mongoose.connect(process.env.MONGO_URI, {
     console.log("MongoDB connected successfully");
 
     // Start Apollo Server only after MongoDB connects
-    startApolloServer(typeDefs, resolvers).then(apolloServer => {
+    startApolloServer(typeDefs, resolvers).then(() => {
       // Start the Express server
       app.listen(PORT, () => {
         console.log(`Server running on port ${PORT}`);
-        console.log(`GraphQL available at http://localhost:${PORT}${apolloServer.graphqlPath}`);
+        console.log(`GraphQL available at http://localhost:${PORT}/graphql`);
       });
     });
   })
@@ -57,7 +58,18 @@ mongoose.connect(process.env.MONGO_URI, {
     console.error("MongoDB connection error:", err);
   });
 
-// Basic route to check if the server is running
+// Serve React frontend in production
+if (process.env.NODE_ENV === 'production') {
+  // Serve static files from the React app
+  app.use(express.static(path.join(__dirname, '../frontend/build')));
+
+  // Catch-all route to serve React's index.html for client-side routing
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../frontend/build', 'index.html'));
+  });
+}
+
+// Basic route for testing server
 app.get('/', (req, res) => {
   res.send('Hello from Freight Flow API');
 });
