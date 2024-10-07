@@ -59,15 +59,15 @@ mongoose.connect(process.env.MONGO_URI, {
   });
 
 // Serve React frontend in production
+// Serve React frontend in production
 if (process.env.NODE_ENV === 'production') {
-  // Serve static files from the React app
-  app.use(express.static(path.join(__dirname, '../frontend/build')));
+  app.use(express.static(path.join(__dirname, '../client/build'))); // Use 'client' folder
 
-  // Catch-all route to serve React's index.html for client-side routing
   app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../frontend/build', 'index.html'));
+    res.sendFile(path.join(__dirname, '../client/build', 'index.html')); // Correct path to index.html
   });
 }
+
 
 // Basic route for testing server
 app.get('/', (req, res) => {
