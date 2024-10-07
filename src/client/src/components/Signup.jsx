@@ -24,7 +24,7 @@ function Signup() {
     }
 
     try {
-      const response = await axios.post(`${process.env.REACT_APP_API_URL}/auth/signup`, { username, email, password });
+      const response = await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/signup`, { username, email, password });
       localStorage.setItem('token', response.data.token); // Store token in localStorage
       setSuccess(true);  // Set success message
       navigate('/dashboard');  // Redirect to dashboard on successful signup
