@@ -13,7 +13,7 @@ function Login() {
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post(`${process.env.REACT_APP_API_URL}/auth/login`, { email, password });
+      const response = await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/login`, { email, password });
       localStorage.setItem('token', response.data.token); // Store token in localStorage
       navigate('/dashboard'); // Redirect to the dashboard on successful login
     } catch (error) {
