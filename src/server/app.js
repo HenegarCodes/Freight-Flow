@@ -34,6 +34,9 @@ const resolvers = {
   },
 };
 
+console.log("ORS API Key:", process.env.ORS_API_KEY);
+
+
 async function startApolloServer(typeDefs, resolvers) {
   const apolloServer = new ApolloServer({ typeDefs, resolvers });
   await apolloServer.start();
