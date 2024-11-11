@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, Polyline, Marker } from 'react-leaflet';
+import { MapContainer, TileLayer, Polyline, Marker, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 
 const RoutePlanner = () => {
@@ -11,6 +11,7 @@ const RoutePlanner = () => {
   const [userLocation, setUserLocation] = useState(null);
   const [isNavigating, setIsNavigating] = useState(false);
 
+  // Track real-time location
   useEffect(() => {
     if (isNavigating) {
       const watchId = navigator.geolocation.watchPosition(
@@ -25,6 +26,7 @@ const RoutePlanner = () => {
     }
   }, [isNavigating]);
 
+  // Fetch coordinates from backend
   const fetchCoordinates = async (address, setCoordinates) => {
     try {
       const response = await fetch(`https://freight-flow.onrender.com/api/geocode?address=${encodeURIComponent(address)}`);
@@ -36,11 +38,12 @@ const RoutePlanner = () => {
     }
   };
 
+  // Fetch truck-optimized route from backend
   const fetchRoute = async () => {
     if (startCoordinates && endCoordinates) {
       try {
         const response = await fetch(
-          `https://freight-flow.onrender.com/api/route?start=${startCoordinates.join(',')}&end=${endCoordinates.join(',')}`
+          `https://freight-flow.onrender.com/api/route?start=${startCoordinates.join(',')}&end=${endCoordinates.join(',')}&profile=driving-hgv`
         );
         if (!response.ok) throw new Error(`Error fetching route: ${response.statusText}`);
         const data = await response.json();
@@ -86,9 +89,14 @@ const RoutePlanner = () => {
       >
         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
         
+        {/* Display start and end markers */}
         {startCoordinates && <Marker position={startCoordinates} />}
         {endCoordinates && <Marker position={endCoordinates} />}
+        
+        {/* Display route as a polyline */}
         {route.length > 0 && <Polyline positions={route} />}
+
+        {/* Display user location marker */}
         {userLocation && <Marker position={userLocation} />}
       </MapContainer>
     </div>
