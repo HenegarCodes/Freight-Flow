@@ -27,28 +27,38 @@ const RoutePlanner = () => {
   // Fetch route from start to end coordinates
   const fetchRoute = async () => {
     if (startCoordinates && endCoordinates) {
+      console.log("Fetching route with start:", startCoordinates, "end:", endCoordinates);
       try {
         const response = await fetch(
           `https://freight-flow.onrender.com/api/route?start=${startCoordinates.join(',')}&end=${endCoordinates.join(',')}&profile=driving-hgv`
         );
-        if (!response.ok) throw new Error(`Routing failed: ${response.statusText}`);
-        const data = await response.json();
-        console.log('Route data:', data);
-
-        if (!data.features || data.features.length === 0) {
-          throw new Error('No route data returned from ORS');
+  
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error("Error fetching route:", errorData);
+          throw new Error(`Error fetching route: ${errorData.error}`);
         }
-
-        // Extract route geometry
+  
+        const data = await response.json();
+        console.log("Route data from API:", data);
+  
+        if (!data.features || data.features.length === 0) {
+          console.error("No route data returned from ORS");
+          throw new Error("No route data returned from ORS");
+        }
+  
         const routeCoordinates = data.features[0].geometry.coordinates.map(([lng, lat]) => [lat, lng]);
-        console.log('Processed route coordinates:', routeCoordinates);
-        setRoute(routeCoordinates);
+        console.log("Processed route coordinates:", routeCoordinates);
+  
+        setRoute(routeCoordinates); // Set route for Polyline rendering
       } catch (error) {
-        setError(`Error fetching route: ${error.message}`);
-        console.error(error);
+        console.error("Error in fetchRoute:", error.message);
       }
+    } else {
+      console.error("Missing coordinates for route fetch");
     }
   };
+  
 
   // Handle form submission
   const handleSubmit = async (e) => {
