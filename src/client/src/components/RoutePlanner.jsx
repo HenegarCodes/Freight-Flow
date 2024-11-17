@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Polyline, Marker } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
+import { useMap } from 'react-leaflet';
+
 
 const RoutePlanner = () => {
   const [startAddress, setStartAddress] = useState('');
@@ -59,7 +61,15 @@ const RoutePlanner = () => {
     }
   };
   
-
+  const FlyTo = ({ center }) => {
+    const map = useMap();
+    useEffect(() => {
+      if (center) {
+        map.flyTo(center, 13); // Fly to the center with zoom level 13
+      }
+    }, [center, map]);
+    return null;
+  };
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -86,20 +96,16 @@ const RoutePlanner = () => {
 
       {error && <p style={{ color: 'red' }}>{error}</p>}
 
-      <MapContainer
-        center={startCoordinates || [40.7128, -74.0060]} // Default to NYC if no coordinates
-        zoom={13}
-        style={{ height: '400px', width: '100%' }}
-      >
-        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+      <MapContainer center={startCoordinates || [33.237828, -111.867848]} zoom={13} style={{ height: '400px', width: '100%' }}>
+  <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
 
-        {/* Show start and end markers */}
-        {startCoordinates && <Marker position={startCoordinates} />}
-        {endCoordinates && <Marker position={endCoordinates} />}
+  <FlyTo center={startCoordinates} /> {/* Programmatically center map */}
 
-        {/* Display the route as a polyline */}
-        {route.length > 0 && <Polyline positions={route} color="blue" weight={5} />}
-      </MapContainer>
+  {startCoordinates && <Marker position={startCoordinates} />}
+  {endCoordinates && <Marker position={endCoordinates} />}
+  {route.length > 0 && <Polyline positions={route} color="blue" weight={5} />}
+</MapContainer>
+
     </div>
   );
 };
