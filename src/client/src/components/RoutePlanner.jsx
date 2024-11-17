@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, Polyline, Marker } from 'react-leaflet';
+import { MapContainer, TileLayer, Polyline, Marker, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
-import { useMap } from 'react-leaflet';
-
 
 const RoutePlanner = () => {
   const [startAddress, setStartAddress] = useState('');
@@ -12,72 +10,55 @@ const RoutePlanner = () => {
   const [route, setRoute] = useState([]);
   const [error, setError] = useState('');
 
-  // Fetch coordinates for given address
+  // Trigger fetchRoute when both coordinates are available
+  useEffect(() => {
+    if (startCoordinates && endCoordinates) {
+      fetchRoute();
+    }
+  }, [startCoordinates, endCoordinates]);
+
   const fetchCoordinates = async (address, setCoordinates) => {
     try {
       const response = await fetch(`https://freight-flow.onrender.com/api/geocode?address=${encodeURIComponent(address)}`);
-      if (!response.ok) throw new Error(`Geocoding failed: ${response.statusText}`);
+      if (!response.ok) throw new Error(`Error fetching coordinates: ${response.statusText}`);
       const data = await response.json();
       console.log(`Coordinates for "${address}":`, data);
-      setCoordinates([data.latitude, data.longitude]);
+      setCoordinates([data.latitude, data.longitude]); // Set coordinates in [latitude, longitude] format
     } catch (error) {
       setError(`Error fetching coordinates for "${address}": ${error.message}`);
       console.error(error);
     }
   };
 
-  // Fetch route from start to end coordinates
   const fetchRoute = async () => {
-    if (startCoordinates && endCoordinates) {
-      console.log("Fetching route with start:", startCoordinates, "end:", endCoordinates);
-      try {
-        const response = await fetch(
-          `https://freight-flow.onrender.com/api/route?start=${startCoordinates.join(',')}&end=${endCoordinates.join(',')}&profile=driving-hgv`
-        );
-  
-        if (!response.ok) {
-          const errorData = await response.json();
-          console.error("Error fetching route:", errorData);
-          throw new Error(`Error fetching route: ${errorData.error}`);
-        }
-  
-        const data = await response.json();
-        console.log("Route data from API:", data);
-  
-        if (!data.features || data.features.length === 0) {
-          console.error("No route data returned from ORS");
-          throw new Error("No route data returned from ORS");
-        }
-  
-        const routeCoordinates = data.features[0].geometry.coordinates.map(([lng, lat]) => [lat, lng]);
-        console.log("Processed route coordinates:", routeCoordinates);
-  
-        setRoute(routeCoordinates); // Set route for Polyline rendering
-      } catch (error) {
-        console.error("Error in fetchRoute:", error.message);
+    console.log("Fetching route with start:", startCoordinates, "end:", endCoordinates);
+    try {
+      const response = await fetch(
+        `https://freight-flow.onrender.com/api/route?start=${startCoordinates.join(',')}&end=${endCoordinates.join(',')}&profile=driving-hgv`
+      );
+      if (!response.ok) throw new Error(`Error fetching route: ${response.statusText}`);
+      const data = await response.json();
+      console.log("Route data from API:", data);
+
+      if (!data.features || data.features.length === 0) {
+        throw new Error("No route data returned from ORS");
       }
-    } else {
-      console.error("Missing coordinates for route fetch");
+
+      const routeCoordinates = data.features[0].geometry.coordinates.map(([lng, lat]) => [lat, lng]);
+      console.log("Processed route coordinates:", routeCoordinates);
+      setRoute(routeCoordinates);
+    } catch (error) {
+      setError(`Error fetching route: ${error.message}`);
+      console.error(error);
     }
   };
-  
-  const FlyTo = ({ center }) => {
-    const map = useMap();
-    useEffect(() => {
-      if (center) {
-        map.flyTo(center, 13); // Fly to the center with zoom level 13
-      }
-    }, [center, map]);
-    return null;
-  };
-  // Handle form submission
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setRoute([]); // Clear previous route
     await fetchCoordinates(startAddress, setStartCoordinates);
     await fetchCoordinates(endAddress, setEndCoordinates);
-    fetchRoute();
   };
 
   return (
@@ -96,16 +77,20 @@ const RoutePlanner = () => {
 
       {error && <p style={{ color: 'red' }}>{error}</p>}
 
-      <MapContainer center={startCoordinates || [33.237828, -111.867848]} zoom={13} style={{ height: '400px', width: '100%' }}>
-  <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+      <MapContainer
+        center={startCoordinates || [33.237828, -111.867848]} // Default center
+        zoom={13}
+        style={{ height: '400px', width: '100%' }}
+      >
+        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
 
-  <FlyTo center={startCoordinates} /> {/* Programmatically center map */}
+        {/* Display start and end markers */}
+        {startCoordinates && <Marker position={startCoordinates} />}
+        {endCoordinates && <Marker position={endCoordinates} />}
 
-  {startCoordinates && <Marker position={startCoordinates} />}
-  {endCoordinates && <Marker position={endCoordinates} />}
-  {route.length > 0 && <Polyline positions={route} color="blue" weight={5} />}
-</MapContainer>
-
+        {/* Display route as a polyline */}
+        {route.length > 0 && <Polyline positions={route} color="blue" weight={5} />}
+      </MapContainer>
     </div>
   );
 };
