@@ -6,7 +6,6 @@ const { orsApiKey } = require('../config');
 
 router.get('/geocode', async (req, res) => {
   const { address } = req.query;
-  console.log("ORS API Key:", orsApiKey); // Check if this prints the correct API key
   try {
     const response = await axios.get(`https://api.openrouteservice.org/geocode/search`, {
       params: {

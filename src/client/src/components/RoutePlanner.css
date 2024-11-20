@@ -44,3 +44,13 @@
     background-color: #f9f9f9;
   }
   
+  .route-planner {
+    padding: 20px;
+  }
+  
+  .route-form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-bottom: 20px;
+  }

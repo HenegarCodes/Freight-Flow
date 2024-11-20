@@ -1,8 +1,10 @@
-// backend/routes/orsRoute.js
+
 const express = require('express');
 const axios = require('axios');
 const router = express.Router();
 const { orsApiKey } = require('../config');
+const Trip = require('../models/Trip'); 
+
 
 router.get('/geocode', async (req, res) => {
   const { address } = req.query;
@@ -36,6 +38,18 @@ router.get('/route', async (req, res) => {
   } catch (error) {
     console.error('Routing error:', error);
     res.status(500).json({ error: 'Internal server error.' });
+  }
+});
+router.post('/trips', async (req, res) => {
+  const { start, end, truckHeight, truckWeight, route } = req.body;
+
+  try {
+    const trip = new Trip({ start, end, truckHeight, truckWeight, route });
+    await trip.save();
+    res.status(201).json({ message: 'Trip saved successfully', trip });
+  } catch (error) {
+    console.error('Error saving trip:', error);
+    res.status(500).json({ error: 'Failed to save trip' });
   }
 });
 

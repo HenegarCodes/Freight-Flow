@@ -1,4 +1,4 @@
-// backend/app.js
+
 const express = require('express');
 const { ApolloServer, gql } = require('apollo-server-express');
 const mongoose = require('mongoose');
