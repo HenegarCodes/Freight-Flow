@@ -4,26 +4,40 @@ const axios = require('axios');
 const router = express.Router();
 const { orsApiKey } = require('../config');
 
-router.get('/route', async (req, res) => {
-  const { start, end, profile } = req.query;
-  console.log("ORS API Key:", orsApiKey);
-  console.log("Start:", start, "End:", end, "Profile:", profile);
-
+router.get('/geocode', async (req, res) => {
+  const { address } = req.query;
   try {
-    // Construct the ORS URL with start and end directly in the URL
-    const url = `https://api.openrouteservice.org/v2/directions/${profile}?api_key=${orsApiKey}&start=${start}&end=${end}`;
-    console.log("Constructed ORS URL:", url);  // Log the constructed URL
-
-    const response = await axios.get(url);
-    console.log("OpenRouteService route response:", response.data);
-
-    // Send the response data to the frontend
-    res.json(response.data);
+    const response = await axios.get(
+      `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(
+        address
+      )}&key=${process.env.GOOGLE_MAPS_API_KEY}`
+    );
+    if (response.data.status !== 'OK') {
+      return res.status(400).json({ error: 'Failed to fetch geocoding data.' });
+    }
+    const location = response.data.results[0].geometry.location;
+    res.json({ latitude: location.lat, longitude: location.lng });
   } catch (error) {
-    const errorMessage = error.response?.data || error.message;
-    console.error("Error fetching route from ORS:", errorMessage);
-    res.status(500).json({ error: errorMessage });
+    console.error('Geocoding error:', error);
+    res.status(500).json({ error: 'Internal server error.' });
   }
 });
+
+router.get('/route', async (req, res) => {
+  const { start, end } = req.query;
+  try {
+    const response = await axios.get(
+      `https://maps.googleapis.com/maps/api/directions/json?origin=${start}&destination=${end}&key=${process.env.GOOGLE_MAPS_API_KEY}`
+    );
+    if (response.data.status !== 'OK') {
+      return res.status(400).json({ error: 'Failed to fetch routing data.' });
+    }
+    res.json(response.data);
+  } catch (error) {
+    console.error('Routing error:', error);
+    res.status(500).json({ error: 'Internal server error.' });
+  }
+});
+
 
 module.exports = router;

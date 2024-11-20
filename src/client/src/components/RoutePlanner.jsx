@@ -1,64 +1,62 @@
-import React, { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, Polyline, Marker, useMap } from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
+import React, { useState } from 'react';
+import { GoogleMap, LoadScript, DirectionsService, DirectionsRenderer, Marker } from '@react-google-maps/api';
+import './RoutePlanner.css'; // For styling (spinner, sidebar, etc.)
+
+
+const containerStyle = {
+  width: '100%',
+  height: '400px',
+};
+
+console.log("Google Maps API Key:", process.env.REACT_APP_GOOGLE_MAPS_API_KEY);
 
 const RoutePlanner = () => {
   const [startAddress, setStartAddress] = useState('');
   const [endAddress, setEndAddress] = useState('');
-  const [startCoordinates, setStartCoordinates] = useState(null);
-  const [endCoordinates, setEndCoordinates] = useState(null);
-  const [route, setRoute] = useState([]);
+  const [directionsResponse, setDirectionsResponse] = useState(null);
+  const [waypoints, setWaypoints] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Trigger fetchRoute when both coordinates are available
-  useEffect(() => {
-    if (startCoordinates && endCoordinates) {
-      fetchRoute();
-    }
-  }, [startCoordinates, endCoordinates]);
+  const isValidAddress = (address) => address && address.trim().length > 5;
 
-  const fetchCoordinates = async (address, setCoordinates) => {
-    try {
-      const response = await fetch(`https://freight-flow.onrender.com/api/geocode?address=${encodeURIComponent(address)}`);
-      if (!response.ok) throw new Error(`Error fetching coordinates: ${response.statusText}`);
-      const data = await response.json();
-      console.log(`Coordinates for "${address}":`, data);
-      setCoordinates([data.latitude, data.longitude]); // Set coordinates in [latitude, longitude] format
-    } catch (error) {
-      setError(`Error fetching coordinates for "${address}": ${error.message}`);
-      console.error(error);
-    }
-  };
+  const fetchRoute = () => {
+    setLoading(true);
+    const directionsService = new window.google.maps.DirectionsService();
 
-  const fetchRoute = async () => {
-    console.log("Fetching route with start:", startCoordinates, "end:", endCoordinates);
-    try {
-      const response = await fetch(
-        `https://freight-flow.onrender.com/api/route?start=${startCoordinates.join(',')}&end=${endCoordinates.join(',')}&profile=driving-hgv`
-      );
-      if (!response.ok) throw new Error(`Error fetching route: ${response.statusText}`);
-      const data = await response.json();
-      console.log("Route data from API:", data);
-
-      if (!data.features || data.features.length === 0) {
-        throw new Error("No route data returned from ORS");
+    directionsService.route(
+      {
+        origin: startAddress,
+        destination: endAddress,
+        waypoints: waypoints.map((wp) => ({ location: wp, stopover: true })),
+        travelMode: window.google.maps.TravelMode.DRIVING,
+        drivingOptions: {
+          departureTime: new Date(),
+          trafficModel: 'pessimistic',
+        },
+      },
+      (result, status) => {
+        setLoading(false);
+        if (status === window.google.maps.DirectionsStatus.OK) {
+          setDirectionsResponse(result);
+          setError('');
+        } else {
+          console.error('Error fetching route:', status);
+          setError('Failed to fetch route. Please try again.');
+        }
       }
-
-      const routeCoordinates = data.features[0].geometry.coordinates.map(([lng, lat]) => [lat, lng]);
-      console.log("Processed route coordinates:", routeCoordinates);
-      setRoute(routeCoordinates);
-    } catch (error) {
-      setError(`Error fetching route: ${error.message}`);
-      console.error(error);
-    }
+    );
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
     setError('');
-    setRoute([]); // Clear previous route
-    await fetchCoordinates(startAddress, setStartCoordinates);
-    await fetchCoordinates(endAddress, setEndCoordinates);
+    setDirectionsResponse(null); // Clear previous route
+    if (!isValidAddress(startAddress) || !isValidAddress(endAddress)) {
+      setError('Please enter valid addresses for both start and end locations.');
+      return;
+    }
+    fetchRoute();
   };
 
   return (
@@ -66,31 +64,54 @@ const RoutePlanner = () => {
       <form onSubmit={handleSubmit}>
         <label>
           Start Address:
-          <input type="text" value={startAddress} onChange={(e) => setStartAddress(e.target.value)} />
+          <input
+            type="text"
+            value={startAddress}
+            onChange={(e) => setStartAddress(e.target.value)}
+          />
         </label>
         <label>
           End Address:
-          <input type="text" value={endAddress} onChange={(e) => setEndAddress(e.target.value)} />
+          <input
+            type="text"
+            value={endAddress}
+            onChange={(e) => setEndAddress(e.target.value)}
+          />
         </label>
         <button type="submit">Get Route</button>
       </form>
 
       {error && <p style={{ color: 'red' }}>{error}</p>}
+      {loading && <div className="spinner">Loading route...</div>}
 
-      <MapContainer
-        center={startCoordinates || [33.237828, -111.867848]} // Default center
-        zoom={13}
-        style={{ height: '400px', width: '100%' }}
-      >
-        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-
-        {/* Display start and end markers */}
-        {startCoordinates && <Marker position={startCoordinates} />}
-        {endCoordinates && <Marker position={endCoordinates} />}
-
-        {/* Display route as a polyline */}
-        {route.length > 0 && <Polyline positions={route} color="blue" weight={5} />}
-      </MapContainer>
+      <LoadScript googleMapsApiKey={process.env.REACT_APP_GOOGLE_MAPS_API_KEY}>
+        <GoogleMap
+          mapContainerStyle={containerStyle}
+          center={{ lat: 33.336675, lng: -111.792417 }}
+          zoom={13}
+          onClick={(e) =>
+            setWaypoints((prev) => [...prev, { lat: e.latLng.lat(), lng: e.latLng.lng() }])
+          }
+        >
+          {waypoints.map((point, index) => (
+            <Marker
+              key={index}
+              position={point}
+              draggable={true}
+              onDragEnd={(e) =>
+                setWaypoints((prev) =>
+                  prev.map((wp, i) =>
+                    i === index
+                      ? { lat: e.latLng.lat(), lng: e.latLng.lng() }
+                      : wp
+                  )
+                )
+              }
+            />
+          ))}
+          {directionsResponse && <DirectionsRenderer directions={directionsResponse} />}
+        </GoogleMap>
+      </LoadScript>
     </div>
   );
 };
