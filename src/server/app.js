@@ -17,7 +17,6 @@ app.use(express.json());
 app.use(cors({ origin: 'http://localhost:3000' }));
 
 
-// Define routes
 app.use('/api/auth', authRoutes);
 app.use('/api', orsRoute);
 app.use('/api', geocodeRoute);

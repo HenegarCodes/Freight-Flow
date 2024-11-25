@@ -35,7 +35,7 @@ function Header() {
       <ul className='menu'>
         {/* Common links that appear for all users */}
         <li><Link to="/dashboard">Dashboard</Link></li>
-        <li><Link to="/map">Map</Link></li>
+        <li><Link to="/route-planner">Routing</Link></li>
 
         {/* Conditionally render based on whether the user is logged in */}
         {isAuthenticated ? (

@@ -1,11 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { GoogleMap, LoadScript, DirectionsRenderer } from '@react-google-maps/api';
 import axios from 'axios';
-import { GoogleMap, LoadScript, DirectionsService, DirectionsRenderer } from '@react-google-maps/api';
 import './RoutePlanner.css';
 
 const containerStyle = {
   width: '100%',
   height: '500px',
+};
+
+const center = {
+  lat: 33.336675,
+  lng: -111.792417,
 };
 
 const RoutePlanner = () => {
@@ -16,13 +21,14 @@ const RoutePlanner = () => {
   const [directionsResponse, setDirectionsResponse] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const mapRef = useRef(null);
+  const watchIdRef = useRef(null);
 
-  const isValidAddress = (address) => address && address.trim().length > 5;
-
+  // Fetch directions and initialize tracking
   const fetchRoute = () => {
     setLoading(true);
     const directionsService = new window.google.maps.DirectionsService();
-  
+
     directionsService.route(
       {
         origin: startAddress,
@@ -33,7 +39,9 @@ const RoutePlanner = () => {
         setLoading(false);
         if (status === window.google.maps.DirectionsStatus.OK) {
           setDirectionsResponse(result);
-          saveTrip(result); // Save the route after fetching
+          startTracking(result.routes[0].legs[0]); // Start real-time tracking with the route
+          saveTrip(result); // Save trip after fetching the route
+          setError('');
         } else {
           console.error('Error fetching route:', status);
           setError('Failed to fetch route. Please try again.');
@@ -41,19 +49,8 @@ const RoutePlanner = () => {
       }
     );
   };
-  
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    setError('');
-    setDirectionsResponse(null); // Clear previous route
-    if (!isValidAddress(startAddress) || !isValidAddress(endAddress)) {
-      setError('Please enter valid addresses for both start and end locations.');
-      return;
-    }
-    fetchRoute();
-  };
-
+  // Save the trip to the backend
   const saveTrip = async (route) => {
     try {
       const response = await axios.post('/api/trips', {
@@ -68,7 +65,69 @@ const RoutePlanner = () => {
       console.error('Error saving trip:', error.message);
     }
   };
-  
+
+  // Start real-time tracking
+  const startTracking = (routeLeg) => {
+    if (navigator.geolocation) {
+      watchIdRef.current = navigator.geolocation.watchPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          const userLocation = { lat: latitude, lng: longitude };
+
+          // Update the map center to user's current location
+          if (mapRef.current) {
+            mapRef.current.panTo(userLocation);
+          }
+
+          // Optional: Calculate if user deviates from the route
+          const distanceToNextStep = calculateDistanceToNextStep(userLocation, routeLeg);
+          if (distanceToNextStep > 500) {
+            // Recalculate the route if deviation exceeds threshold
+            fetchRoute();
+          }
+        },
+        (error) => {
+          console.error('Error with geolocation:', error.message);
+        },
+        { enableHighAccuracy: true }
+      );
+    } else {
+      console.error('Geolocation is not supported by this browser.');
+    }
+  };
+
+  // Stop tracking when trip is finished
+  const stopTracking = () => {
+    if (watchIdRef.current) {
+      navigator.geolocation.clearWatch(watchIdRef.current);
+      watchIdRef.current = null;
+    }
+  };
+
+  // Utility function to calculate distance to the next step
+  const calculateDistanceToNextStep = (userLocation, routeLeg) => {
+    const nextStep = routeLeg.steps[0].end_location; // Get the first step's end location
+    return google.maps.geometry.spherical.computeDistanceBetween(
+      new google.maps.LatLng(userLocation.lat, userLocation.lng),
+      new google.maps.LatLng(nextStep.lat(), nextStep.lng())
+    );
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    setError('');
+    setDirectionsResponse(null); // Clear previous route
+    if (!startAddress || !endAddress) {
+      setError('Please enter valid start and end addresses.');
+      return;
+    }
+    fetchRoute();
+  };
+
+  useEffect(() => {
+    // Cleanup tracking on component unmount
+    return () => stopTracking();
+  }, []);
 
   return (
     <div className="route-planner">
@@ -118,8 +177,9 @@ const RoutePlanner = () => {
       <LoadScript googleMapsApiKey={process.env.REACT_APP_GOOGLE_MAPS_API_KEY}>
         <GoogleMap
           mapContainerStyle={containerStyle}
-          center={{ lat: 33.336675, lng: -111.792417 }}
+          center={center}
           zoom={13}
+          onLoad={(map) => (mapRef.current = map)} // Save map reference
         >
           {directionsResponse && <DirectionsRenderer directions={directionsResponse} />}
         </GoogleMap>
