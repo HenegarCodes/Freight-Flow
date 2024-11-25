@@ -52,20 +52,30 @@ const RoutePlanner = () => {
 
   // Save the trip to the backend
   const saveTrip = async (route) => {
+    const optimizedRoute = {
+      distance: route.routes[0].legs[0].distance.text,
+      duration: route.routes[0].legs[0].duration.text,
+      waypoints: route.routes[0].legs[0].steps.map(step => ({
+        start: step.start_location,
+        end: step.end_location,
+        instructions: step.instructions,
+      })),
+    };
+  
     try {
-      const response = await axios.post('/api/trips', {
+      const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/trips`, {
         start: startAddress,
         end: endAddress,
         truckHeight,
         truckWeight,
-        route,
+        route: optimizedRoute,
       });
       console.log('Trip saved:', response.data);
     } catch (error) {
       console.error('Error saving trip:', error.message);
     }
   };
-
+  
   // Start real-time tracking
   const startTracking = (routeLeg) => {
     if (navigator.geolocation) {
