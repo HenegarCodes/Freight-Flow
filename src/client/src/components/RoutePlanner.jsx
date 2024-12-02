@@ -41,6 +41,7 @@ const RoutePlanner = () => {
         setLoading(false);
         if (status === window.google.maps.DirectionsStatus.OK) {
           setDirectionsResponse(result);
+          console.log(result);
           saveTrip(result); // Save the trip after fetching the route
           setError('');
         } else {

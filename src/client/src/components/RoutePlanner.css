@@ -53,4 +53,8 @@
     flex-direction: column;
     gap: 15px;
     margin-bottom: 20px;
+  }.navigation-controls {
+    display: block !important;
+    visibility: visible !important;
   }
+  
