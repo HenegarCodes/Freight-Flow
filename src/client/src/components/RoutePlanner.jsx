@@ -21,6 +21,7 @@ const RoutePlanner = () => {
   const [directionsResponse, setDirectionsResponse] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [routeSteps, setRouteSteps] = useState([]); // Store step-by-step instructions
   const mapRef = useRef(null);
   const watchIdRef = useRef(null);
 
@@ -39,6 +40,7 @@ const RoutePlanner = () => {
         setLoading(false);
         if (status === window.google.maps.DirectionsStatus.OK) {
           setDirectionsResponse(result);
+          extractRouteSteps(result.routes[0].legs[0].steps); // Extract and store route steps
           startTracking(result.routes[0].legs[0]); // Start real-time tracking with the route
           saveTrip(result); // Save trip after fetching the route
           setError('');
@@ -50,31 +52,42 @@ const RoutePlanner = () => {
     );
   };
 
-  // Save the trip to the backend
-const saveTrip = async (route) => {
-  const optimizedRoute = {
-    distance: route.routes[0].legs[0].distance.text,
-    duration: route.routes[0].legs[0].duration.text,
-    waypoints: route.routes[0].legs[0].steps.map(step => ({
-      start: step.start_location,
-      end: step.end_location,
+  // Extract steps for route guidance
+  const extractRouteSteps = (steps) => {
+    const formattedSteps = steps.map((step, index) => ({
+      id: index + 1,
       instructions: step.instructions,
-    })),
+      distance: step.distance.text,
+      duration: step.duration.text,
+    }));
+    setRouteSteps(formattedSteps);
   };
 
-  try {
-    const response = await axios.post(`/api/trips`, {
-      start: startAddress,
-      end: endAddress,
-      truckHeight,
-      truckWeight,
-      route: optimizedRoute,
-    });
-    console.log('Trip saved:', response.data);
-  } catch (error) {
-    console.error('Error saving trip:', error.message);
-  }
-};
+  // Save the trip to the backend
+  const saveTrip = async (route) => {
+    const optimizedRoute = {
+      distance: route.routes[0].legs[0].distance.text,
+      duration: route.routes[0].legs[0].duration.text,
+      waypoints: route.routes[0].legs[0].steps.map((step) => ({
+        start: step.start_location,
+        end: step.end_location,
+        instructions: step.instructions,
+      })),
+    };
+
+    try {
+      const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/trips`, {
+        start: startAddress,
+        end: endAddress,
+        truckHeight,
+        truckWeight,
+        route: optimizedRoute,
+      });
+      console.log('Trip saved:', response.data);
+    } catch (error) {
+      console.error('Error saving trip:', error.message);
+    }
+  };
 
   // Start real-time tracking
   const startTracking = (routeLeg) => {
@@ -194,6 +207,20 @@ const saveTrip = async (route) => {
           {directionsResponse && <DirectionsRenderer directions={directionsResponse} />}
         </GoogleMap>
       </LoadScript>
+
+      {/* Route Steps */}
+      {routeSteps.length > 0 && (
+        <div className="route-steps">
+          <h3>Route Directions</h3>
+          <ul>
+            {routeSteps.map((step) => (
+              <li key={step.id}>
+                <strong>Step {step.id}:</strong> {step.instructions} ({step.distance}, {step.duration})
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 };
