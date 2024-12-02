@@ -74,9 +74,9 @@ const RoutePlanner = () => {
         instructions: step.instructions,
       })),
     };
-
+  
     try {
-      const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/trips`, {
+      const response = await axios.post(`https://freight-flow.onrender.com/api/trips`, {
         start: startAddress,
         end: endAddress,
         truckHeight,
