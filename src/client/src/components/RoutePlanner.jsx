@@ -21,11 +21,12 @@ const RoutePlanner = () => {
   const [directionsResponse, setDirectionsResponse] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [routeSteps, setRouteSteps] = useState([]); // Store step-by-step instructions
+  const [currentStepIndex, setCurrentStepIndex] = useState(0); // Track current step
+  const [isNavigating, setIsNavigating] = useState(false); // Track navigation state
   const mapRef = useRef(null);
   const watchIdRef = useRef(null);
 
-  // Fetch directions and initialize tracking
+  // Fetch directions and prepare navigation
   const fetchRoute = () => {
     setLoading(true);
     const directionsService = new window.google.maps.DirectionsService();
@@ -40,9 +41,7 @@ const RoutePlanner = () => {
         setLoading(false);
         if (status === window.google.maps.DirectionsStatus.OK) {
           setDirectionsResponse(result);
-          extractRouteSteps(result.routes[0].legs[0].steps); // Extract and store route steps
-          startTracking(result.routes[0].legs[0]); // Start real-time tracking with the route
-          saveTrip(result); // Save trip after fetching the route
+          saveTrip(result); // Save the trip after fetching the route
           setError('');
         } else {
           console.error('Error fetching route:', status);
@@ -50,17 +49,6 @@ const RoutePlanner = () => {
         }
       }
     );
-  };
-
-  // Extract steps for route guidance
-  const extractRouteSteps = (steps) => {
-    const formattedSteps = steps.map((step, index) => ({
-      id: index + 1,
-      instructions: step.instructions,
-      distance: step.distance.text,
-      duration: step.duration.text,
-    }));
-    setRouteSteps(formattedSteps);
   };
 
   // Save the trip to the backend
@@ -74,7 +62,7 @@ const RoutePlanner = () => {
         instructions: step.instructions,
       })),
     };
-  
+
     try {
       const response = await axios.post(`https://freight-flow.onrender.com/api/trips`, {
         start: startAddress,
@@ -89,8 +77,26 @@ const RoutePlanner = () => {
     }
   };
 
+  // Start navigation
+  const startNavigation = () => {
+    if (!directionsResponse) {
+      setError('No route to navigate. Fetch a route first.');
+      return;
+    }
+
+    setCurrentStepIndex(0); // Start from the first step
+    setIsNavigating(true);
+    startRealTimeTracking();
+  };
+
+  // Stop navigation
+  const stopNavigation = () => {
+    setIsNavigating(false);
+    stopRealTimeTracking();
+  };
+
   // Start real-time tracking
-  const startTracking = (routeLeg) => {
+  const startRealTimeTracking = () => {
     if (navigator.geolocation) {
       watchIdRef.current = navigator.geolocation.watchPosition(
         (position) => {
@@ -102,12 +108,8 @@ const RoutePlanner = () => {
             mapRef.current.panTo(userLocation);
           }
 
-          // Optional: Calculate if user deviates from the route
-          const distanceToNextStep = calculateDistanceToNextStep(userLocation, routeLeg);
-          if (distanceToNextStep > 500) {
-            // Recalculate the route if deviation exceeds threshold
-            fetchRoute();
-          }
+          // Move to the next step if the user reaches the current step's end location
+          handleStepProgress(userLocation);
         },
         (error) => {
           console.error('Error with geolocation:', error.message);
@@ -119,21 +121,45 @@ const RoutePlanner = () => {
     }
   };
 
-  // Stop tracking when trip is finished
-  const stopTracking = () => {
+  // Stop real-time tracking
+  const stopRealTimeTracking = () => {
     if (watchIdRef.current) {
       navigator.geolocation.clearWatch(watchIdRef.current);
       watchIdRef.current = null;
     }
   };
 
-  // Utility function to calculate distance to the next step
-  const calculateDistanceToNextStep = (userLocation, routeLeg) => {
-    const nextStep = routeLeg.steps[0].end_location; // Get the first step's end location
-    return google.maps.geometry.spherical.computeDistanceBetween(
-      new google.maps.LatLng(userLocation.lat, userLocation.lng),
-      new google.maps.LatLng(nextStep.lat(), nextStep.lng())
+  // Handle step progress
+  const handleStepProgress = (userLocation) => {
+    const steps = directionsResponse.routes[0].legs[0].steps;
+    const currentStep = steps[currentStepIndex];
+    const nextStep = steps[currentStepIndex + 1];
+
+    // Calculate distance to the current step's end location
+    const distanceToCurrentStepEnd = calculateDistanceToNextStep(
+      userLocation,
+      currentStep.end_location
     );
+
+    if (distanceToCurrentStepEnd < 50 && nextStep) {
+      // Move to the next step
+      setCurrentStepIndex(currentStepIndex + 1);
+      speakStep(nextStep.instructions); // Provide spoken directions for the next step
+    }
+  };
+
+  // Calculate distance to the next step
+  const calculateDistanceToNextStep = (userLocation, stepLocation) => {
+    return window.google.maps.geometry.spherical.computeDistanceBetween(
+      new window.google.maps.LatLng(userLocation.lat, userLocation.lng),
+      stepLocation
+    );
+  };
+
+  // Provide spoken directions for a step
+  const speakStep = (instruction) => {
+    const utterance = new SpeechSynthesisUtterance(instruction);
+    speechSynthesis.speak(utterance);
   };
 
   const handleSubmit = (e) => {
@@ -149,7 +175,7 @@ const RoutePlanner = () => {
 
   useEffect(() => {
     // Cleanup tracking on component unmount
-    return () => stopTracking();
+    return () => stopRealTimeTracking();
   }, []);
 
   return (
@@ -208,17 +234,16 @@ const RoutePlanner = () => {
         </GoogleMap>
       </LoadScript>
 
-      {/* Route Steps */}
-      {routeSteps.length > 0 && (
-        <div className="route-steps">
-          <h3>Route Directions</h3>
-          <ul>
-            {routeSteps.map((step) => (
-              <li key={step.id}>
-                <strong>Step {step.id}:</strong> {step.instructions} ({step.distance}, {step.duration})
-              </li>
-            ))}
-          </ul>
+      {directionsResponse && (
+        <div className="navigation-controls">
+          {!isNavigating ? (
+            <button onClick={startNavigation}>Start Trip</button>
+          ) : (
+            <button onClick={stopNavigation}>Stop Trip</button>
+          )}
+          <p>
+            Current Step: {directionsResponse.routes[0].legs[0].steps[currentStepIndex]?.instructions}
+          </p>
         </div>
       )}
     </div>
