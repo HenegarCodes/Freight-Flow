@@ -5,7 +5,7 @@ import './RoutePlanner.css';
 
 const containerStyle = {
   width: '100%',
-  height: '500px',
+  height: '400px', 
 };
 
 const center = {

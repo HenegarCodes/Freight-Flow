@@ -57,4 +57,9 @@
     display: block !important;
     visibility: visible !important;
   }
+  .google-map-container {
+    width: 100%;
+    height: 400px; /* Reduced height */
+    margin-bottom: 10px; /* Add space below the map */
+  }
   
