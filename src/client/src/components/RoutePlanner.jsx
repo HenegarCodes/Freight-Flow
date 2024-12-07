@@ -181,73 +181,74 @@ const RoutePlanner = () => {
 
   return (
     <div className="route-planner">
-      <form onSubmit={handleSubmit} className="route-form">
-        <label>
-          Start Address:
-          <input
-            type="text"
-            value={startAddress}
-            onChange={(e) => setStartAddress(e.target.value)}
-            placeholder="Enter starting address"
-          />
-        </label>
-        <label>
-          End Address:
-          <input
-            type="text"
-            value={endAddress}
-            onChange={(e) => setEndAddress(e.target.value)}
-            placeholder="Enter destination address"
-          />
-        </label>
-        <label>
-          Truck Height (ft):
-          <input
-            type="number"
-            value={truckHeight}
-            onChange={(e) => setTruckHeight(e.target.value)}
-            placeholder="Enter truck height"
-          />
-        </label>
-        <label>
-          Truck Weight (lbs):
-          <input
-            type="number"
-            value={truckWeight}
-            onChange={(e) => setTruckWeight(e.target.value)}
-            placeholder="Enter truck weight"
-          />
-        </label>
-        <button type="submit">Get Route</button>
-      </form>
+  <form onSubmit={handleSubmit} className="route-form">
+    <label>
+      Start Address:
+      <input
+        type="text"
+        value={startAddress}
+        onChange={(e) => setStartAddress(e.target.value)}
+        placeholder="Enter starting address"
+      />
+    </label>
+    <label>
+      End Address:
+      <input
+        type="text"
+        value={endAddress}
+        onChange={(e) => setEndAddress(e.target.value)}
+        placeholder="Enter destination address"
+      />
+    </label>
+    <label>
+      Truck Height (ft):
+      <input
+        type="number"
+        value={truckHeight}
+        onChange={(e) => setTruckHeight(e.target.value)}
+        placeholder="Enter truck height"
+      />
+    </label>
+    <label>
+      Truck Weight (lbs):
+      <input
+        type="number"
+        value={truckWeight}
+        onChange={(e) => setTruckWeight(e.target.value)}
+        placeholder="Enter truck weight"
+      />
+    </label>
+    <button type="submit">Get Route</button>
+  </form>
 
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-      {loading && <div className="spinner">Loading route...</div>}
-
-      <LoadScript googleMapsApiKey={process.env.REACT_APP_GOOGLE_MAPS_API_KEY}>
-        <GoogleMap
-          mapContainerStyle={containerStyle}
-          center={center}
-          zoom={13}
-          onLoad={(map) => (mapRef.current = map)} // Save map reference
-        >
-          {directionsResponse && <DirectionsRenderer directions={directionsResponse} />}
-        </GoogleMap>
-      </LoadScript>
-
-      {directionsResponse && (
-        <div className="navigation-controls">
-          {!isNavigating ? (
-            <button onClick={startNavigation}>Start Trip</button>
-          ) : (
-            <button onClick={stopNavigation}>Stop Trip</button>
-          )}
-          <p>
-            Current Step: {directionsResponse.routes[0].legs[0].steps[currentStepIndex]?.instructions}
-          </p>
-        </div>
+  {directionsResponse && (
+    <div className="navigation-controls">
+      {!isNavigating ? (
+        <button onClick={startNavigation}>Start Trip</button>
+      ) : (
+        <button onClick={stopNavigation}>Stop Trip</button>
       )}
+      <p>
+        Current Step: {directionsResponse.routes[0].legs[0].steps[currentStepIndex]?.instructions}
+      </p>
     </div>
+  )}
+
+  {error && <p style={{ color: 'red' }}>{error}</p>}
+  {loading && <div className="spinner">Loading route...</div>}
+
+  <LoadScript googleMapsApiKey={process.env.REACT_APP_GOOGLE_MAPS_API_KEY}>
+    <GoogleMap
+      mapContainerStyle={containerStyle}
+      center={center}
+      zoom={13}
+      onLoad={(map) => (mapRef.current = map)}
+    >
+      {directionsResponse && <DirectionsRenderer directions={directionsResponse} />}
+    </GoogleMap>
+  </LoadScript>
+</div>
+
   );
 };
 
