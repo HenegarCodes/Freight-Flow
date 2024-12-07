@@ -63,3 +63,9 @@
     margin-bottom: 10px; /* Add space below the map */
   }
   
+  .navigation-controls {
+    max-height: 200px;
+    overflow-y: auto;
+    margin-top: 10px;
+  }
+  
