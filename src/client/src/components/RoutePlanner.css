@@ -37,11 +37,14 @@
   }
   
   .directions-sidebar {
-    margin-top: 20px;
+    max-height: 200px; /* Limit height for scrolling */
+    overflow-y: auto; /* Enable vertical scrolling */
     padding: 10px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
+    margin-top: 15px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
     background-color: #f9f9f9;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   }
   
   .route-planner {
@@ -70,3 +73,5 @@
     border: 1px solid red;
   }
   
+  
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
