@@ -64,19 +64,19 @@ router.post('/login', async (req, res) => {
 });
 
 // Auth Check Route
-router.get('/check', (req, res) => {
-  const token = req.header('Authorization')?.split(' ')[1]; // Expect "Bearer <token>"
+router.get('/check', async (req, res) => {
+  const token = req.header('Authorization')?.split(' ')[1]; // Extract the token
   if (!token) {
-    return res.status(401).json({ isAuthenticated: false, message: 'No token provided' });
+    return res.status(401).json({ isAuthenticated: false, message: 'Authorization header missing' });
   }
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET); // Validate the token
     res.json({ isAuthenticated: true, userId: decoded.userId });
-  } catch (error) {
-    console.error('Token verification error:', error.message);
-    res.status(401).json({ isAuthenticated: false, message: 'Invalid token' });
+  } catch (err) {
+    res.status(401).json({ isAuthenticated: false, message: 'Invalid or expired token' });
   }
 });
+
 
 module.exports = router;
