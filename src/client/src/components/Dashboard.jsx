@@ -133,7 +133,7 @@ const Dashboard = () => {
               <p><strong>End:</strong> {selectedTrip.end}</p>
               <p><strong>Distance:</strong> {selectedTrip.distance}</p>
               <p><strong>Duration:</strong> {selectedTrip.duration}</p>
-              <p><strong>Date:</strong> {new Date(selectedTrip.date).toLocaleDateString()}</p>
+              <p><strong>Date:</strong> {new Date(selectedTrip.date).toappleleDateString()}</p>
               <button onClick={() => setSelectedTrip(null)}>Back to Recent Trips</button>
             </div>
           )}

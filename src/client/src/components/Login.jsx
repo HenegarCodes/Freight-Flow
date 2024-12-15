@@ -1,62 +1,55 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
+//import './Login.css';
 
-function Login() {
+const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const navigate = useNavigate();
 
-  const handleSubmit = async (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    setError('');
-
-    // Validate form inputs
-    if (!email || !password) {
-      setError('Please enter both email and password');
-      return;
-    }
-
+    setError(''); // Clear previous errors
     try {
-      const response = await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/login`, {
-        email,
-        password,
-      });
-      localStorage.setItem('token', response.data.token); // Store token in localStorage
-      navigate('/dashboard');  // Redirect to dashboard on successful login
+      const response = await axios.post('/api/auth/login', { email, password });
+      // Store token in localStorage
+      localStorage.setItem('token', response.data.token);
+      console.log('Token stored in localStorage:', localStorage.getItem('token'));
+      // Redirect to dashboard
+      window.location.href = '/dashboard';
     } catch (error) {
-      setError(error.response?.data?.message || 'Login failed, please try again');
+      console.error('Login error:', error.message);
+      setError('Invalid email or password. Please try again.');
     }
   };
 
   return (
-    <div className="form">
+    <div className="login-container">
       <h1>Login</h1>
-      
-      {error && <div className="error-message">{error}</div>}
-      
-      <form onSubmit={handleSubmit}>
-        <label>Email</label>
-        <input 
-          onChange={(e) => setEmail(e.target.value)} 
-          value={email} 
-          type="email" 
-          required 
-        />
-        
-        <label>Password</label>
-        <input 
-          onChange={(e) => setPassword(e.target.value)} 
-          value={password} 
-          type="password" 
-          required 
-        />
-        
+      <form onSubmit={handleLogin} className="login-form">
+        <label>
+          Email:
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+        </label>
+        <label>
+          Password:
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+        </label>
+        {error && <p className="error-message">{error}</p>}
         <button type="submit">Login</button>
       </form>
     </div>
   );
-}
+};
 
 export default Login;
