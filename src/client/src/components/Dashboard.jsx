@@ -19,13 +19,29 @@ const Dashboard = () => {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const response = await axios.get('/api/auth/check'); // Example route to verify authentication
-        setIsLoggedIn(response.data.isAuthenticated);
+        const token = localStorage.getItem('token'); // Retrieve token from localStorage
+        if (!token) {
+          setIsLoggedIn(false);
+          return;
+        }
+  
+        const response = await axios.get('/api/auth/check', {
+          headers: {
+            Authorization: `Bearer ${token}`, // Pass token in Authorization header
+          },
+        });
+  
+        if (response.data.isAuthenticated) {
+          setIsLoggedIn(true);
+        } else {
+          setIsLoggedIn(false);
+        }
       } catch (error) {
+        console.error('Authentication check failed:', error.response?.data || error.message);
         setIsLoggedIn(false);
       }
     };
-
+  
     checkAuth();
   }, []);
 
