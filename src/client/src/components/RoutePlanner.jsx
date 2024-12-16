@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { GoogleMap, LoadScript, DirectionsRenderer, Marker } from '@react-google-maps/api';
 import Modal from 'react-modal';
 import axios from 'axios';
+import { debounce, throttle } from '../utils/debounceThrottle'; // Import the utilities
 import './RoutePlanner.css';
 
 const containerStyle = {
@@ -27,6 +28,21 @@ const RoutePlanner = () => {
   const mapRef = useRef(null);
   const watchIdRef = useRef(null);
 
+  // Test Debounce for Input Changes
+  const handleInputChange = debounce((value) => {
+    console.log(`Debounced input: ${value}`);
+  }, 500);
+
+  const onAddressChange = (e) => {
+    setEndAddress(e.target.value);
+    handleInputChange(e.target.value);
+  };
+
+  // Test Throttle for Location Updates
+  const throttledUpdateLocation = throttle((location) => {
+    console.log('Throttled location update:', location);
+  }, 2000);
+
   // Fetch the user's current location
   useEffect(() => {
     if (navigator.geolocation) {
@@ -35,6 +51,8 @@ const RoutePlanner = () => {
           const { latitude, longitude } = position.coords;
           const location = { lat: latitude, lng: longitude };
           setCurrentLocation(location);
+
+          throttledUpdateLocation(location); // Test throttling here
 
           if (mapRef.current) {
             mapRef.current.panTo(location);
@@ -59,7 +77,6 @@ const RoutePlanner = () => {
     };
   }, []);
 
-  // Fetch directions
   const fetchRoute = () => {
     setLoading(true);
     const directionsService = new window.google.maps.DirectionsService();
@@ -75,7 +92,7 @@ const RoutePlanner = () => {
         if (status === window.google.maps.DirectionsStatus.OK) {
           setDirectionsResponse(result);
           setError('');
-          saveTrip(result); // Save trip after fetching the route
+          saveTrip(result);
         } else {
           console.error('Error fetching route:', status);
           setError('Failed to fetch route. Please try again.');
@@ -84,7 +101,6 @@ const RoutePlanner = () => {
     );
   };
 
-  // Save the trip to the backend
   const saveTrip = async (route) => {
     const optimizedRoute = {
       distance: route.routes[0].legs[0].distance.text,
@@ -110,7 +126,6 @@ const RoutePlanner = () => {
     }
   };
 
-  // Update the current step and next step based on the user's location
   const updateCurrentStep = (userLocation) => {
     if (!directionsResponse) return;
 
@@ -127,7 +142,6 @@ const RoutePlanner = () => {
         new google.maps.LatLng(stepEnd.lat(), stepEnd.lng())
       );
 
-      // Update the current step if within a threshold distance
       if (distanceToStart < 50 || distanceToEnd < 50) {
         setCurrentStepIndex(i);
         break;
@@ -166,7 +180,7 @@ const RoutePlanner = () => {
           <input
             type="text"
             value={endAddress}
-            onChange={(e) => setEndAddress(e.target.value)}
+            onChange={onAddressChange} // Use debounced change handler
             placeholder="Enter destination address"
           />
         </label>
@@ -208,7 +222,6 @@ const RoutePlanner = () => {
         </GoogleMap>
       </LoadScript>
 
-      {/* Current and Next Steps */}
       {directionsResponse && (
         <div className="directions-display">
           <p>
@@ -229,7 +242,6 @@ const RoutePlanner = () => {
         </div>
       )}
 
-      {/* Modal for Full Directions */}
       <Modal
         isOpen={isModalOpen}
         onRequestClose={closeModal}
