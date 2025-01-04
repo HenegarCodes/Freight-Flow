@@ -102,6 +102,10 @@ const RoutePlanner = () => {
   };
 
   const saveTrip = async (route) => {
+    const token = localStorage.getItem('token'); // Assuming the JWT token is stored in localStorage
+    const decodedToken = JSON.parse(atob(token.split('.')[1])); // Decode the JWT to extract user ID
+    const userId = decodedToken.userId; // Ensure this matches your token structure
+  
     const optimizedRoute = {
       distance: route.routes[0].legs[0].distance.text,
       duration: route.routes[0].legs[0].duration.text,
@@ -111,20 +115,30 @@ const RoutePlanner = () => {
         instructions: step.instructions,
       })),
     };
-
+  
     try {
-      const response = await axios.post(`/api/trips`, {
-        start: currentLocation,
-        end: endAddress,
-        truckHeight,
-        truckWeight,
-        route: optimizedRoute,
-      });
+      const response = await axios.post(
+        `/api/trips`,
+        {
+          user: userId, // Include user ID here
+          start: currentLocation,
+          end: endAddress,
+          truckHeight,
+          truckWeight,
+          route: optimizedRoute,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`, // Pass the token for backend verification
+          },
+        }
+      );
       console.log('Trip saved:', response.data);
     } catch (error) {
       console.error('Error saving trip:', error.message);
     }
   };
+  
 
   const updateCurrentStep = (userLocation) => {
     if (!directionsResponse) return;
@@ -171,6 +185,8 @@ const RoutePlanner = () => {
   const closeModal = () => {
     setIsModalOpen(false);
   };
+
+  
 
   return (
     <div className="route-planner">

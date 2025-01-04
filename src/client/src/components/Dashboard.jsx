@@ -50,30 +50,34 @@ const Dashboard = () => {
     if (isLoggedIn) {
       const fetchTrips = async () => {
         try {
-          const response = await axios.get('/api/trips/recent');
-          console.log('API response:', response.data); // Debug response
-          setRecentTrips(Array.isArray(response.data) ? response.data : []); // Ensure array
-          // Calculate averages if there are trips
-          if (Array.isArray(response.data) && response.data.length > 0) {
-            const avgTime = (
-              response.data.reduce((sum, trip) => sum + parseFloat(trip.duration.replace(' mins', '')), 0) /
-              response.data.length
-            ).toFixed(2);
-            const avgMileage = (
-              response.data.reduce((sum, trip) => sum + parseFloat(trip.distance.replace(' mi', '')), 0) /
-              response.data.length
-            ).toFixed(2);
-            setAverages({ time: avgTime, mileage: avgMileage });
-          }
+          const token = localStorage.getItem('token'); // Retrieve the token
+          const response = await axios.get('/api/trips/user', {
+            headers: {
+              Authorization: `Bearer ${token}`, // Include token for backend authentication
+            },
+          });
+          setRecentTrips(response.data);
+  
+          // Calculate averages
+          const avgTime = (
+            response.data.reduce((sum, trip) => sum + parseFloat(trip.route.duration.replace(' mins', '')), 0) /
+            response.data.length
+          ).toFixed(2);
+          const avgMileage = (
+            response.data.reduce((sum, trip) => sum + parseFloat(trip.route.distance.replace(' mi', '')), 0) /
+            response.data.length
+          ).toFixed(2);
+  
+          setAverages({ time: avgTime, mileage: avgMileage });
         } catch (error) {
           console.error('Error fetching recent trips:', error);
-          setRecentTrips([]); // Reset to empty array on error
         }
       };
   
       fetchTrips();
     }
   }, [isLoggedIn]);
+  
   
 
   // Handle feedback form submission

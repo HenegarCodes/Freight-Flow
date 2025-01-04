@@ -5,9 +5,9 @@ require('dotenv').config(); // Load environment variables
 
 const sampleUsers = [
   {
-    username: 'testuser1',
-    email: 'testuser1@example.com',
-    password: 'password123',
+    username: 'spencer',
+    email: 'spencerhenegar@example.com',
+    password: 'Baxter48',
   },
   {
     username: 'testuser2',

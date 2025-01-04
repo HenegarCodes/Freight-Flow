@@ -20,4 +20,14 @@ router.get('/recent', authMiddleware, async (req, res) => {
   }
 });
 
+router.get('/user', verifyToken, async (req, res) => {
+  try {
+    const userId = req.user.userId; // Extracted from the token by verifyToken middleware
+    const trips = await Trip.find({ user: userId }).sort({ date: -1 }).limit(5); // Fetch 5 most recent trips
+    res.json(trips);
+  } catch (error) {
+    console.error('Error fetching trips:', error.message);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
 module.exports = router;
