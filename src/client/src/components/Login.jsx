@@ -8,22 +8,17 @@ const Login = () => {
 
   const onSubmit = async (e) => {
     e.preventDefault();
-    console.log('Form data:', { email, password }); // Debugging
-
+  
     try {
-      const response = await axios.post('https://freight-flow.onrender.com/api/auth/login',
-                { email, password }
-      );
+      const response = await axios.post('/api/auth/login', { email, password });
       console.log('Login successful:', response.data);
+      localStorage.setItem('token', response.data.token);
+      navigate('/dashboard');
     } catch (error) {
-      console.error('Login error:', error.message);
-      if (error.response && error.response.status === 400) {
-        setError('Invalid email or password. Please try again.');
-      } else {
-        setError('An unexpected error occurred. Please try again later.');
-      }
+      console.error('Login error:', error.response?.data || error.message);
     }
   };
+  
 
   return (
     <form onSubmit={onSubmit}>
