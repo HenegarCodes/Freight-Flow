@@ -32,6 +32,8 @@ router.post('/signup', async (req, res) => {
     res.status(500).send('Server error');
   }
 });
+console.log('User found:', user);
+console.log('Password match:', isMatch);
 
 // Login Route
 // Login Route

@@ -11,9 +11,8 @@ const Login = () => {
     console.log('Form data:', { email, password }); // Debugging
 
     try {
-      const response = await axios.post(
-        `${process.env.REACT_APP_API_BASE_URL}/api/auth/login`, // Ensure this points to the correct API
-        { email, password }
+      const response = await axios.post('https://freight-flow.onrender.com/api/auth/login',
+                { email, password }
       );
       console.log('Login successful:', response.data);
     } catch (error) {
