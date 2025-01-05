@@ -20,7 +20,6 @@ app.use(cors({ origin: 'http://localhost:3000' }));
 app.use('/api/auth', authRoutes);
 app.use('/api', orsRoute);
 app.use('/api', geocodeRoute);
-app.use('/api/trips', tripsRoute);
 
 const typeDefs = gql`
   type Query {
@@ -34,7 +33,6 @@ const resolvers = {
   },
 };
 
-const tripsRoute = require('./routes/tripsRoute');
 
 
 async function startApolloServer(typeDefs, resolvers) {
@@ -47,6 +45,7 @@ async function startApolloServer(typeDefs, resolvers) {
 mongoose.connect(process.env.MONGO_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
+  
 })
 .then(() => {
   console.log("MongoDB connected successfully");
