@@ -47,33 +47,36 @@ const Dashboard = () => {
 
   // Fetch the 5 most recent trips
   useEffect(() => {
-    const fetchTrips = async () => {
-      try {
-        const response = await axios.get('/api/trips/user', {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-        });
-        console.log('Fetched Trips:', response.data); // Debugging
-        setRecentTrips(response.data);
+    if (isLoggedIn) {
+      const fetchTrips = async () => {
+        try {
+          const token = localStorage.getItem('token'); // Retrieve the token
+          const response = await axios.get('/api/trips/user', {
+            headers: {
+              Authorization: `Bearer ${token}`, // Include token for backend authentication
+            },
+          });
+          setRecentTrips(response.data);
   
-        // Calculate averages
-        const avgTime = (
-          response.data.reduce((sum, trip) => sum + parseFloat(trip.route.duration.replace(' mins', '')), 0) /
-          response.data.length
-        ).toFixed(2);
-        const avgMileage = (
-          response.data.reduce((sum, trip) => sum + parseFloat(trip.route.distance.replace(' mi', '')), 0) /
-          response.data.length
-        ).toFixed(2);
+          // Calculate averages
+          const avgTime = (
+            response.data.reduce((sum, trip) => sum + parseFloat(trip.route.duration.replace(' mins', '')), 0) /
+            response.data.length
+          ).toFixed(2);
+          const avgMileage = (
+            response.data.reduce((sum, trip) => sum + parseFloat(trip.route.distance.replace(' mi', '')), 0) /
+            response.data.length
+          ).toFixed(2);
   
-        setAverages({ time: avgTime, mileage: avgMileage });
-      } catch (error) {
-        console.error('Error fetching trips:', error.message);
-      }
-    };
+          setAverages({ time: avgTime, mileage: avgMileage });
+        } catch (error) {
+          console.error('Error fetching recent trips:', error);
+        }
+      };
   
-    fetchTrips();
-  }, []);
-  
+      fetchTrips();
+    }
+  }, [isLoggedIn]);
   
   
 
