@@ -17,33 +17,30 @@ const Dashboard = () => {
 
   // Check if the user is logged in
   useEffect(() => {
-    const checkAuth = async () => {
+    const fetchTrips = async () => {
       try {
-        const token = localStorage.getItem('token'); // Retrieve token from localStorage
-        if (!token) {
-          setIsLoggedIn(false);
-          return;
-        }
-  
-        const response = await axios.get('/api/auth/check', {
+        const response = await axios.get('/api/trips/recent', {
           headers: {
-            Authorization: `Bearer ${token}`, // Pass token in Authorization header
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
           },
         });
-  
-        if (response.data.isAuthenticated) {
-          setIsLoggedIn(true);
+        
+        // Ensure the data is an array
+        if (Array.isArray(response.data)) {
+          setRecentTrips(response.data);
         } else {
-          setIsLoggedIn(false);
+          console.error('Unexpected data format:', response.data);
+          setRecentTrips([]); // Set to an empty array to avoid errors
         }
       } catch (error) {
-        console.error('Authentication check failed:', error.response?.data || error.message);
-        setIsLoggedIn(false);
+        console.error('Error fetching trips:', error);
+        setRecentTrips([]); // Handle error gracefully
       }
     };
   
-    checkAuth();
+    fetchTrips();
   }, []);
+  
 
   // Fetch the 5 most recent trips
   useEffect(() => {
