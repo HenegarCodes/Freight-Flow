@@ -9,6 +9,7 @@ const orsRoute = require('./routes/orsRoute');
 const geocodeRoute = require('./routes/geocodeRoute');
 const tripsRoute = require('./routes/tripsRoute'); // Add trips route
 
+
 const app = express();
 const PORT = process.env.PORT || 5000;
 
@@ -17,9 +18,9 @@ app.use(express.json());
 
 // Register routes
 app.use('/api/auth', authRoutes);
+app.use('/api/trips', tripsRoute); // Ensure this is before the static files middleware
 app.use('/api', orsRoute);
 app.use('/api', geocodeRoute);
-app.use('/api/trips', tripsRoute); // Mount trips route
 
 const typeDefs = gql`
   type Query {
