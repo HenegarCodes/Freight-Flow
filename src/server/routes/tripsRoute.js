@@ -2,14 +2,12 @@ const express = require('express');
 const router = express.Router();
 const authMiddleware = require('../middleware/authMiddleware'); // Protect routes
 const Trip = require('../models/Trip'); // Trip model
+const verifyToken = require('../middleware/authMiddleware'); 
 
-router.get('/recent', authMiddleware, async (req, res) => {
+router.get('/recent', verifyToken, async (req, res) => {
   try {
-    const userId = req.user.userId; // Use the attached user info
-    const trips = await Trip.find({ user: userId }) // Fetch trips for the logged-in user
-      .sort({ date: -1 }) // Most recent first
-      .limit(5); // Limit to 5 trips
-
+    const userId = req.user.userId; // Extract from token
+    const trips = await Trip.find({ user: userId }).sort({ date: -1 }).limit(5);
     res.json(trips);
   } catch (error) {
     console.error('Error fetching recent trips:', error);
