@@ -4,19 +4,7 @@ const authMiddleware = require('../middleware/authMiddleware'); // Protect route
 const Trip = require('../models/Trip'); // Trip model
 
 
-router.get('/', verifyToken, async (req, res) => {
-  try {
-    // Assuming your verifyToken middleware sets req.user.userId
-    const userId = req.user.userId; 
-    const trips = await Trip.find({ user: userId })
-      .sort({ date: -1 })
-      .limit(5);
-    res.json(trips); // Return the trips as JSON
-  } catch (error) {
-    console.error('Error fetching trips:', error.message);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
+
 router.get('/recent', verifyToken, async (req, res) => {
   try {
     // Assuming your verifyToken middleware sets req.user.userId
