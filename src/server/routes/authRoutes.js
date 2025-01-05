@@ -38,32 +38,27 @@ router.post('/signup', async (req, res) => {
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
 
-  // Log incoming request payload
-  console.log('Login payload:', req.body);
+  console.log('Login payload:', req.body); // Log received payload
 
-  // Validate email and password
   if (!email || !password) {
     return res.status(400).json({ message: 'Email and password are required' });
   }
 
   try {
-    // Check if user exists
     const user = await User.findOne({ email });
-    console.log('User found:', user);
+    console.log('User found:', user); // Log user details from the database
 
     if (!user) {
-      return res.status(400).json({ message: 'Invalid credentials' });
+      return res.status(400).json({ message: 'Invalid credentials: user not found' });
     }
 
-    // Compare password
     const isMatch = await bcrypt.compare(password, user.password);
-    console.log('Password match:', isMatch);
+    console.log('Password match:', isMatch); // Log password comparison result
 
     if (!isMatch) {
-      return res.status(400).json({ message: 'Invalid credentials' });
+      return res.status(400).json({ message: 'Invalid credentials: password mismatch' });
     }
 
-    // Generate JWT token
     const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
     res.json({ token });
   } catch (error) {
