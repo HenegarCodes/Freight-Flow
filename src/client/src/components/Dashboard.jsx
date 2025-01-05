@@ -17,28 +17,28 @@ const Dashboard = () => {
 
   // Check if the user is logged in
   useEffect(() => {
-    const fetchTrips = async () => {
+    const checkAuth = async () => {
       try {
-        const response = await axios.get('/api/trips/recent', {
+        const token = localStorage.getItem('token'); // Retrieve token from localStorage
+        if (!token) {
+          setIsLoggedIn(false); // No token, not logged in
+          return;
+        }
+  
+        const response = await axios.get('/api/auth/check', {
           headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
+            Authorization: `Bearer ${token}`, // Send the token in Authorization header
           },
         });
-        
-        // Ensure the data is an array
-        if (Array.isArray(response.data)) {
-          setRecentTrips(response.data);
-        } else {
-          console.error('Unexpected data format:', response.data);
-          setRecentTrips([]); // Set to an empty array to avoid errors
-        }
+  
+        setIsLoggedIn(response.data.isAuthenticated); // Backend should return { isAuthenticated: true/false }
       } catch (error) {
-        console.error('Error fetching trips:', error);
-        setRecentTrips([]); // Handle error gracefully
+        console.error('Authentication check failed:', error);
+        setIsLoggedIn(false); // Default to not logged in on error
       }
     };
   
-    fetchTrips();
+    checkAuth();
   }, []);
   
 
