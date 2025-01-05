@@ -5,19 +5,24 @@ const Trip = require('../models/Trip'); // Trip model
 
 
 
-router.get('/recent', verifyToken, async (req, res) => {
+router.get('/recent', async (req, res) => {
   try {
-    // Assuming your verifyToken middleware sets req.user.userId
-    const userId = req.user.userId; 
-    const trips = await Trip.find({ user: userId })
-      .sort({ date: -1 })
-      .limit(5);
-    res.json(trips); // Return the trips as JSON
+    const userId = req.user?.id; // Extract from middleware or request (JWT payload)
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized access' });
+    }
+
+    const trips = await Trip.find({ user: userId }) // Fetch trips for the logged-in user
+      .sort({ date: -1 }) // Most recent first
+      .limit(5); // Limit to 5 trips
+
+    res.json(trips);
   } catch (error) {
-    console.error('Error fetching trips:', error.message);
-    res.status(500).json({ error: 'Server error' });
+    console.error('Error fetching recent trips:', error);
+    res.status(500).json({ error: 'Failed to fetch trips' });
   }
 });
+
 
 
 router.get('/user', verifyToken, async (req, res) => {

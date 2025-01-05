@@ -67,17 +67,17 @@ router.post('/login', async (req, res) => {
 
 
 // Auth Check Route
-router.get('/check', async (req, res) => {
-  const token = req.header('Authorization')?.split(' ')[1]; // Extract the token
+router.get('/check', (req, res) => {
+  const token = req.headers.authorization?.split(' ')[1]; // Extract token from "Bearer <token>"
   if (!token) {
-    return res.status(401).json({ isAuthenticated: false, message: 'Authorization header missing' });
+    return res.json({ isAuthenticated: false });
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET); // Validate the token
-    res.json({ isAuthenticated: true, userId: decoded.userId });
-  } catch (err) {
-    res.status(401).json({ isAuthenticated: false, message: 'Invalid or expired token' });
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    return res.json({ isAuthenticated: true, userId: decoded.userId });
+  } catch (error) {
+    return res.json({ isAuthenticated: false });
   }
 });
 
