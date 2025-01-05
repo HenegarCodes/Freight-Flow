@@ -38,6 +38,9 @@ router.post('/signup', async (req, res) => {
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
 
+  // Log incoming request payload
+  console.log('Login payload:', req.body);
+
   // Validate email and password
   if (!email || !password) {
     return res.status(400).json({ message: 'Email and password are required' });
@@ -46,12 +49,16 @@ router.post('/login', async (req, res) => {
   try {
     // Check if user exists
     const user = await User.findOne({ email });
+    console.log('User found:', user);
+
     if (!user) {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
     // Compare password
     const isMatch = await bcrypt.compare(password, user.password);
+    console.log('Password match:', isMatch);
+
     if (!isMatch) {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
@@ -64,6 +71,7 @@ router.post('/login', async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 });
+
 
 
 // Auth Check Route
