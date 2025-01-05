@@ -34,38 +34,37 @@ router.post('/signup', async (req, res) => {
 });
 
 // Login Route
+// Login Route
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
 
-  // Validate request body
+  // Validate email and password
   if (!email || !password) {
     return res.status(400).json({ message: 'Email and password are required' });
   }
 
   try {
-    // Check if the user exists
+    // Check if user exists
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
-    // Verify password
+    // Compare password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
     // Generate JWT token
-    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
-      expiresIn: '1h',
-    });
-
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
     res.json({ token });
   } catch (error) {
-    console.error('Error in /login route:', error.message);
+    console.error('Login error:', error.message);
     res.status(500).json({ message: 'Server error' });
   }
 });
+
 
 // Auth Check Route
 router.get('/check', async (req, res) => {
