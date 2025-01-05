@@ -4,34 +4,33 @@ const authMiddleware = require('../middleware/authMiddleware'); // Protect route
 const Trip = require('../models/Trip'); // Trip model
 
 
-router.get('/', async (req, res) => {
+router.get('/', verifyToken, async (req, res) => {
   try {
-    const userId = req.user.id; 
-    const trips = await Trip.find({ user: userId }).sort({ date: -1 }).limit(5);
-    res.status(200).json(trips);
-  } catch (error) {
-    console.error('Error fetching trips:', error.message);
-    res.status(500).json({ error: 'Failed to fetch trips' });
-  }
-});
-
-
-// GET: Fetch 5 most recent trips for the logged-in user
-router.get('/recent', authMiddleware, async (req, res) => {
-  try {
-    const userId = req.user.userId;
-
-    // Fetch the 5 most recent trips from MongoDB
+    // Assuming your verifyToken middleware sets req.user.userId
+    const userId = req.user.userId; 
     const trips = await Trip.find({ user: userId })
-      .sort({ date: -1 }) // Sort by date descending
+      .sort({ date: -1 })
       .limit(5);
-
-    res.json(trips);
+    res.json(trips); // Return the trips as JSON
   } catch (error) {
     console.error('Error fetching trips:', error.message);
-    res.status(500).json({ message: 'Failed to fetch trips' });
+    res.status(500).json({ error: 'Server error' });
   }
 });
+router.get('/recent', verifyToken, async (req, res) => {
+  try {
+    // Assuming your verifyToken middleware sets req.user.userId
+    const userId = req.user.userId; 
+    const trips = await Trip.find({ user: userId })
+      .sort({ date: -1 })
+      .limit(5);
+    res.json(trips); // Return the trips as JSON
+  } catch (error) {
+    console.error('Error fetching trips:', error.message);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 
 router.get('/user', verifyToken, async (req, res) => {
   try {
