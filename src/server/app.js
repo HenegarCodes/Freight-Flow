@@ -7,7 +7,7 @@ const cors = require('cors');
 const authRoutes = require('./routes/authRoutes');
 const orsRoute = require('./routes/orsRoute');
 const geocodeRoute = require('./routes/geocodeRoute');
-const tripsRoute = require('./routes/tripsRoute'); // Add trips route
+const tripsRoute = require('./routes/tripsRoute'); 
 
 
 const app = express();
@@ -18,7 +18,7 @@ app.use(express.json());
 
 // Register routes
 app.use('/api/auth', authRoutes);
-app.use('/api/trips', tripsRoute); // Ensure this is before the static files middleware
+app.use('/api/trips', tripsRoute); 
 app.use('/api', orsRoute);
 app.use('/api', geocodeRoute);
 

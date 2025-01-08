@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const Trip = require('./models/Trip'); // Adjust path as needed
+const Trip = require('./models/Trip'); 
 const User = require('./models/User');
 require('dotenv').config(); // Load environment variables
 
