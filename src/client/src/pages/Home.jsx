@@ -1,9 +1,24 @@
 import React from 'react';
 import './home.css';
+import HomepageImage from '../assets/Homepage.jpg'; // Adjust the path if necessary
 
 const Home = () => {
+  
   return (
-    <div className="homepage">
+    <div
+      className="homepage"
+      style={{
+        backgroundImage: `url(${HomepageImage})`,
+        backgroundRepeat: 'no-repeat',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        height: '100vh',
+        color: 'white',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+      }}
+    >
       {/* Hero Section */}
       <header className="hero-section">
         <h1>Welcome to Freight Flow</h1>
