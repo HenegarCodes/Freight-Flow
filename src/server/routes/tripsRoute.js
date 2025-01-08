@@ -5,32 +5,34 @@ const verifyToken = require('../middleware/authMiddlewares');
 
 router.get('/recent', verifyToken, async (req, res) => {
   try {
-    const userId = mongoose.Types.ObjectId(req.user.userId); // Convert to ObjectId
-    console.log('Querying trips for User ID:', userId); // Log the User ID being queried
-
-    const trips = await Trip.find({ user: userId }).sort({ date: -1 }).limit(5);
-    console.log('Trips fetched from database:', trips); // Log fetched trips
-
+    console.log('Fetching trips for user ID:', req.user.userId);
+    const trips = await Trip.find({ user: req.user.userId })
+      .sort({ date: -1 })
+      .limit(5);
+    console.log('Fetched trips:', trips);
     res.json(trips);
   } catch (error) {
-    console.error('Error fetching trips:', error);
+    console.error('Error fetching recent trips:', error.message);
     res.status(500).json({ error: 'Failed to fetch trips' });
   }
 });
-
 router.get('/user', verifyToken, async (req, res) => {
   try {
-    console.log('Fetching trips for user:', req.user.userId); // Debugging log
+    console.log('Request received for user trips');
+    console.log('User ID from token:', req.user?.userId); // Debug token payload
 
+    // Fetch trips associated with the user
     const trips = await Trip.find({ user: req.user.userId }).sort({ date: -1 }).limit(5);
-    console.log('Fetched trips from database:', trips); // Debugging log
+    console.log('Fetched trips:', trips);
 
-    res.json(trips); // Return trips as an array
+    res.json(trips); // Send trips back to the client
   } catch (error) {
-    console.error('Error fetching trips:', error.message); // Debugging log
-    res.status(500).json({ error: 'Server error' });
+    console.error('Error fetching trips:', error.message);
+    console.error('Stack Trace:', error.stack);
+    res.status(500).json({ error: 'Server error while fetching trips' });
   }
 });
+
 
 
 

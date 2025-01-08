@@ -41,27 +41,29 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchTrips = async () => {
       if (!isLoggedIn) return;
-
+    
       try {
         const token = localStorage.getItem('token');
+        console.log('Using token:', token); // Debugging
         const response = await axios.get('https://freight-flow.onrender.com/api/trips/recent', {
           headers: { Authorization: `Bearer ${token}` },
         });
-
+        console.log('Fetched trips response:', response.data); // Debugging
+    
         if (response.data && Array.isArray(response.data)) {
           setRecentTrips(response.data);
-
+    
           // Calculate averages
           const avgTime = (
             response.data.reduce((sum, trip) => sum + parseFloat(trip.route.duration.replace(' mins', '')), 0) /
             response.data.length
           ).toFixed(2);
-
+    
           const avgMileage = (
             response.data.reduce((sum, trip) => sum + parseFloat(trip.route.distance.replace(' mi', '')), 0) /
             response.data.length
           ).toFixed(2);
-
+    
           setAverages({ time: avgTime, mileage: avgMileage });
         } else {
           console.error('Unexpected response format:', response.data);
@@ -72,6 +74,7 @@ const Dashboard = () => {
         setError('Failed to load trips. Please try again later.');
       }
     };
+    
 
     fetchTrips();
   }, [isLoggedIn]);
