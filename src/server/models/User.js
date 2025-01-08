@@ -10,11 +10,16 @@ const userSchema = new mongoose.Schema({
 
 // Middleware to hash the password before saving
 userSchema.pre('save', async function (next) {
-  if (!this.isModified('password')) return next();
-  const salt = await bcrypt.genSalt(10);
-  this.password = await bcrypt.hash(this.password, salt);
+  if (!this.isModified('password')) return next(); // Skip if password is not modified
+
+  if (!this.password.startsWith('$2')) { // Check if the password is already hashed
+    const salt = await bcrypt.genSalt(10);
+    this.password = await bcrypt.hash(this.password, salt);
+  }
+
   next();
 });
+
 
 // Middleware to clean up trips on user deletion
 userSchema.pre('remove', async function (next) {
