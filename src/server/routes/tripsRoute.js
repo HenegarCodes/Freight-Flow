@@ -4,11 +4,18 @@ const authMiddleware = require('../middleware/authMiddleware'); // Protect route
 const Trip = require('../models/Trip'); // Trip model
 const verifyToken = require('../middleware/authMiddleware'); 
 
-router.get('/recent', verifyToken, async (req, res) => {
+router.get('/recent', authMiddleware, async (req, res) => {
   try {
-    const userId = req.user.userId; // Extract from token
-    const trips = await Trip.find({ user: userId }).sort({ date: -1 }).limit(5);
-    res.json(trips);
+    const userId = req.user.userId; // Extract from the middleware
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized access' });
+    }
+
+    const trips = await Trip.find({ user: userId })
+      .sort({ date: -1 }) // Most recent first
+      .limit(5); // Limit to 5 trips
+
+    res.json(trips); // Send trips back to the frontend
   } catch (error) {
     console.error('Error fetching recent trips:', error);
     res.status(500).json({ error: 'Failed to fetch trips' });

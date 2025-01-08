@@ -10,9 +10,9 @@ const sampleUsers = [
     password: 'Baxter48',
   },
   {
-    username: 'testuser2',
-    email: 'testuser2@example.com',
-    password: 'password123',
+    username: 'hello',
+    email: 'hello@gmail.com',
+    password: 'hello',
   },
 ];
 
