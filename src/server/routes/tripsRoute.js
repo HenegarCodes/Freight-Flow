@@ -21,14 +21,17 @@ router.get('/recent', verifyToken, async (req, res) => {
 router.get('/user', verifyToken, async (req, res) => {
   try {
     console.log('Fetching trips for user:', req.user.userId); // Debugging log
+
     const trips = await Trip.find({ user: req.user.userId }).sort({ date: -1 }).limit(5);
     console.log('Fetched trips from database:', trips); // Debugging log
+
     res.json(trips); // Return trips as an array
   } catch (error) {
     console.error('Error fetching trips:', error.message); // Debugging log
     res.status(500).json({ error: 'Server error' });
   }
 });
+
 
 
 router.get('/trips', async (req, res) => {
