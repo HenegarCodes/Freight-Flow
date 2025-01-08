@@ -1,23 +1,19 @@
 const express = require('express');
 const router = express.Router();
-const authMiddleware = require('../middleware/authMiddleware'); // Protect routes
 const Trip = require('../models/Trip'); // Trip model
-const verifyToken = require('../middleware/authMiddleware'); 
+const verifyToken = require('../../middleware/authMiddleware');
 
-router.get('/recent', authMiddleware, async (req, res) => {
+router.get('/recent', verifyToken, async (req, res) => {
   try {
-    const userId = req.user.userId; // Extract from the middleware
-    if (!userId) {
-      return res.status(401).json({ error: 'Unauthorized access' });
-    }
+    const userId = mongoose.Types.ObjectId(req.user.userId); // Convert to ObjectId
+    console.log('Querying trips for User ID:', userId); // Log the User ID being queried
 
-    const trips = await Trip.find({ user: userId })
-      .sort({ date: -1 }) // Most recent first
-      .limit(5); // Limit to 5 trips
+    const trips = await Trip.find({ user: userId }).sort({ date: -1 }).limit(5);
+    console.log('Trips fetched from database:', trips); // Log fetched trips
 
-    res.json(trips); // Send trips back to the frontend
+    res.json(trips);
   } catch (error) {
-    console.error('Error fetching recent trips:', error);
+    console.error('Error fetching trips:', error);
     res.status(500).json({ error: 'Failed to fetch trips' });
   }
 });
