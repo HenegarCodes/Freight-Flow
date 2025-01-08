@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Trip = require('../models/Trip'); // Trip model
-const verifyToken = require('./middleware/authMiddleware');
+const verifyToken = require('../middleware/authMiddlewares');
 
 router.get('/recent', verifyToken, async (req, res) => {
   try {
