@@ -5,7 +5,7 @@ const userSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true },
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
-  trips: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Trip' }], // Reference trips (optional)
+  trips: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Trip' }], // Reference trips 
 }, { timestamps: true });
 
 // Middleware to hash the password before saving
@@ -33,7 +33,7 @@ userSchema.methods.matchPassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
 
-// Virtual for dynamically populating user trips (optional)
+// Virtual for dynamically populating user trips 
 userSchema.virtual('userTrips', {
   ref: 'Trip', // Reference the Trip model
   localField: '_id', // User ID in the User schema
