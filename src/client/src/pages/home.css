@@ -8,7 +8,7 @@ body {
 }
 
 .hero-section {
-  background: url('./public/Homepage.jpg') no-repeat center center/cover;
+  background: url('src/assets/Homepage.jpg') no-repeat center center/cover;
   color: white;
   padding: 50px 20px;
 }
