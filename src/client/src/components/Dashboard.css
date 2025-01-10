@@ -1,92 +1,116 @@
+
 .dashboard {
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 20px;
-  }
-  
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Tabs */
+.tabs {
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 20px;
+}
+
+.tab {
+  padding: 10px 20px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.tab:hover {
+  background-color: #0056b3;
+}
+
+/* Trips List */
+.trips-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  justify-content: center;
+}
+
+.trip-item {
+  background-color: #f8f9fa;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  padding: 10px;
+  width: 300px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease;
+}
+
+.trip-item:hover {
+  transform: scale(1.05);
+}
+
+/* Trip Details */
+.trip-details, .averages, .fun-section {
+  text-align: center;
+  margin-top: 20px;
+}
+
+/* Modal */
+.auth-modal, .feedback-modal {
+  max-width: 90%;
+  margin: 0 auto;
+  padding: 20px;
+  background-color: white;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+/* Responsive Styles */
+@media (max-width: 768px) {
   .tabs {
-    display: flex;
-    justify-content: space-around;
-    margin-bottom: 20px;
+    flex-direction: column;
+    align-items: center;
   }
-  
+
   .tab {
-    padding: 10px 20px;
-    cursor: pointer;
-    background-color: #f5f5f5;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-  }
-  
-  .trips-list,
-  .trip-details,
-  .averages {
-    background-color: #f9f9f9;
-    padding: 20px;
-    border-radius: 5px;
-  }
-  
-  .fun-section {
-    margin-top: 20px;
-    background-color: #eef7ff;
-    padding: 20px;
-    border-radius: 5px;
+    margin-bottom: 10px;
+    width: 90%;
     text-align: center;
   }
-  
-  .feedback-modal {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 90%;
-    max-width: 400px;
-    background: #fff;
-    border-radius: 8px;
-    padding: 20px;
-    z-index: 1000;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-  }
-  
-  .modal-content {
-    text-align: left;
-  }
-  
-  .feedback-modal h2 {
-    margin-top: 0;
-  }
-  
-  .feedback-modal label {
-    display: block;
-    margin-bottom: 10px;
-  }
-  
-  .feedback-modal textarea {
-    width: 100%;
-    height: 80px;
-  }
-  
-  .feedback-modal button {
-    margin-right: 10px;
-  }
-  
-  /* media queireis*/
 
-  @media (max-width: 768px) {
-    .dashboard {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 20px;
-    }
-  
-    .dashboard .trips-list {
-      width: 100%;
-    }
-  
-    .trip-item {
-      width: 90%;
-      margin: 10px auto;
-    }
+  .trips-list {
+    flex-direction: column;
+    align-items: center;
   }
-  
+
+  .trip-item {
+    width: 90%;
+  }
+
+  .trip-details, .averages, .fun-section {
+    padding: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .tabs {
+    flex-direction: column;
+  }
+
+  .tab {
+    font-size: 14px;
+    padding: 8px 15px;
+  }
+
+  .trips-list {
+    gap: 10px;
+  }
+
+  .trip-item {
+    padding: 8px;
+    font-size: 14px;
+  }
+
+  .trip-details, .averages, .fun-section {
+    font-size: 14px;
+  }
+}
