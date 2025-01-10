@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import './User.css';
+import './user.css';
 
 const User = () => {
   const [userData, setUserData] = useState({});
