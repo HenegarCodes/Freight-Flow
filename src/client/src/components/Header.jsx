@@ -26,7 +26,7 @@ function Header() {
   return (
     <section className='nav'>
       <div className='logo'>
-        <li><link to="/">Freight Flow</link></li>
+        <li><Link to="/">Freight Flow</Link></li>
         </div>
 
       <input id='menu-toggle' type="checkbox" />
