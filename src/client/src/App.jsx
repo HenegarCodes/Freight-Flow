@@ -7,6 +7,7 @@ import Login from './components/Login';
 import Signup from './components/Signup';
 import Dashboard from './components/Dashboard';
 import RoutePlanner from './components/RoutePlanner';
+import User from './components/User';
 
 function App() {
   return (
