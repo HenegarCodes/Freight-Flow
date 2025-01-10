@@ -29,19 +29,22 @@ const RoutePlanner = () => {
   const mapRef = useRef(null);
   const watchIdRef = useRef(null);
 
-  // Add a new stop
   const addStop = () => {
     setStops([...stops, '']);
   };
 
-  // Handle stop input change
   const handleStopChange = (index, value) => {
     const newStops = [...stops];
     newStops[index] = value;
     setStops(newStops);
   };
 
-  // Fetch the user's current location
+  const removeStop = (index) => {
+    const newStops = [...stops];
+    newStops.splice(index, 1); // Remove stop at the given index
+    setStops(newStops);
+  };
+
   useEffect(() => {
     if (navigator.geolocation) {
       watchIdRef.current = navigator.geolocation.watchPosition(
@@ -79,7 +82,7 @@ const RoutePlanner = () => {
       {
         origin: currentLocation,
         destination: endAddress,
-        waypoints: stops.map((stop) => ({ location: stop, stopover: true })), // Additional stops as waypoints
+        waypoints: stops.map((stop) => ({ location: stop, stopover: true })),
         travelMode: window.google.maps.TravelMode.DRIVING,
       },
       (result, status) => {
@@ -118,7 +121,7 @@ const RoutePlanner = () => {
           user: userId,
           start: currentLocation,
           end: endAddress,
-          stops, // Save stops in the backend
+          stops,
           truckHeight,
           truckWeight,
           route: optimizedRoute,
@@ -172,16 +175,25 @@ const RoutePlanner = () => {
           />
         </label>
         {stops.map((stop, index) => (
-          <label key={index}>
-            Stop {index + 1}:
-            <input
-              type="text"
-              value={stop}
-              onChange={(e) => handleStopChange(index, e.target.value)}
-              placeholder={`Enter stop ${index + 1} address`}
-              required
-            />
-          </label>
+          <div key={index} className="stop-field">
+            <label>
+              Stop {index + 1}:
+              <input
+                type="text"
+                value={stop}
+                onChange={(e) => handleStopChange(index, e.target.value)}
+                placeholder={`Enter stop ${index + 1} address`}
+                required
+              />
+              <button
+                type="button"
+                className="remove-stop"
+                onClick={() => removeStop(index)}
+              >
+                ✕
+              </button>
+            </label>
+          </div>
         ))}
         <button type="button" onClick={addStop}>
           Add Stop
