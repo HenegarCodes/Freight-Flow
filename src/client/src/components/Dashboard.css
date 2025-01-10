@@ -70,3 +70,25 @@
     margin-right: 10px;
   }
   
+  /* media queireis*/
+
+  @media (max-width: 768px) {
+    .container {
+      padding: 10px;
+    }
+  
+    .dashboard {
+      flex-direction: column;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .header {
+      font-size: 16px;
+    }
+  
+    .button {
+      width: 100%;
+    }
+  }
+  
