@@ -25,7 +25,10 @@ function Header() {
 
   return (
     <section className='nav'>
-      <div className='logo'>Freight Flow</div>
+      {/* Wrap the title in a Link component */}
+      <div className='logo'>
+        <Link to="/" className="logo-link">Freight Flow</Link>
+      </div>
 
       <input id='menu-toggle' type="checkbox" />
       <label className='menu-button-container' htmlFor="menu-toggle">
