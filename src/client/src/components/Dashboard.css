@@ -73,33 +73,20 @@
   /* media queireis*/
 
   @media (max-width: 768px) {
-    .container {
-      padding: 10px;
-    }
-    @media (max-width: 768px) {
-      .dashboard {
-        flex-direction: column !important;
-      }
-    }
-    
     .dashboard {
+      display: flex;
       flex-direction: column;
-    }
-  }
-  
-  @media (max-width: 480px) {
-    .header {
-      font-size: 16px;
+      align-items: center;
+      padding: 20px;
     }
   
-    .button {
+    .dashboard .trips-list {
       width: 100%;
     }
-  }
   
-  .dashboard .container {
-    padding: 20px;
+    .trip-item {
+      width: 90%;
+      margin: 10px auto;
+    }
   }
-  
- 
   
