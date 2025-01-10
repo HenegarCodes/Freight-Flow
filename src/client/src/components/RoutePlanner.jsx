@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { GoogleMap, LoadScript, DirectionsRenderer, Marker } from '@react-google-maps/api';
 import Modal from 'react-modal';
 import axios from 'axios';
-import { debounce, throttle } from '../utils/debounceThrottle'; // Import the utilities
+import { debounce, throttle } from '../utils/debounceThrottle';
 import './RoutePlanner.css';
 
 const containerStyle = {
@@ -18,6 +18,7 @@ const center = {
 const RoutePlanner = () => {
   const [currentLocation, setCurrentLocation] = useState(null);
   const [endAddress, setEndAddress] = useState('');
+  const [stops, setStops] = useState([]); // Holds additional stops
   const [truckHeight, setTruckHeight] = useState('');
   const [truckWeight, setTruckWeight] = useState('');
   const [directionsResponse, setDirectionsResponse] = useState(null);
@@ -28,20 +29,17 @@ const RoutePlanner = () => {
   const mapRef = useRef(null);
   const watchIdRef = useRef(null);
 
-  // Test Debounce for Input Changes
-  const handleInputChange = debounce((value) => {
-    console.log(`Debounced input: ${value}`);
-  }, 500);
-
-  const onAddressChange = (e) => {
-    setEndAddress(e.target.value);
-    handleInputChange(e.target.value);
+  // Add a new stop
+  const addStop = () => {
+    setStops([...stops, '']);
   };
 
-  // Test Throttle for Location Updates
-  const throttledUpdateLocation = throttle((location) => {
-    console.log('Throttled location update:', location);
-  }, 2000);
+  // Handle stop input change
+  const handleStopChange = (index, value) => {
+    const newStops = [...stops];
+    newStops[index] = value;
+    setStops(newStops);
+  };
 
   // Fetch the user's current location
   useEffect(() => {
@@ -52,13 +50,9 @@ const RoutePlanner = () => {
           const location = { lat: latitude, lng: longitude };
           setCurrentLocation(location);
 
-          throttledUpdateLocation(location); // Test throttling here
-
           if (mapRef.current) {
             mapRef.current.panTo(location);
           }
-
-          updateCurrentStep(location); // Update steps based on location
         },
         (error) => {
           console.error('Error fetching current location:', error.message);
@@ -85,6 +79,7 @@ const RoutePlanner = () => {
       {
         origin: currentLocation,
         destination: endAddress,
+        waypoints: stops.map((stop) => ({ location: stop, stopover: true })), // Additional stops as waypoints
         travelMode: window.google.maps.TravelMode.DRIVING,
       },
       (result, status) => {
@@ -102,10 +97,10 @@ const RoutePlanner = () => {
   };
 
   const saveTrip = async (route) => {
-    const token = localStorage.getItem('token'); // Assuming the JWT token is stored in localStorage
-    const decodedToken = JSON.parse(atob(token.split('.')[1])); // Decode the JWT to extract user ID
-    const userId = decodedToken.userId; // Ensure this matches your token structure
-  
+    const token = localStorage.getItem('token');
+    const decodedToken = JSON.parse(atob(token.split('.')[1]));
+    const userId = decodedToken.userId;
+
     const optimizedRoute = {
       distance: route.routes[0].legs[0].distance.text,
       duration: route.routes[0].legs[0].duration.text,
@@ -115,51 +110,28 @@ const RoutePlanner = () => {
         instructions: step.instructions,
       })),
     };
-  
+
     try {
-      const response = await axios.post(
-        `/api/trips`,
+      await axios.post(
+        '/api/trips',
         {
-          user: userId, // Include user ID here
+          user: userId,
           start: currentLocation,
           end: endAddress,
+          stops, // Save stops in the backend
           truckHeight,
           truckWeight,
           route: optimizedRoute,
         },
         {
           headers: {
-            Authorization: `Bearer ${token}`, // Pass the token for backend verification
+            Authorization: `Bearer ${token}`,
           },
         }
       );
-      console.log('Trip saved:', response.data);
+      console.log('Trip saved');
     } catch (error) {
       console.error('Error saving trip:', error.message);
-    }
-  };
-  
-
-  const updateCurrentStep = (userLocation) => {
-    if (!directionsResponse) return;
-
-    const steps = directionsResponse.routes[0].legs[0].steps;
-    for (let i = 0; i < steps.length; i++) {
-      const stepStart = steps[i].start_location;
-      const stepEnd = steps[i].end_location;
-      const distanceToStart = google.maps.geometry.spherical.computeDistanceBetween(
-        new google.maps.LatLng(userLocation.lat, userLocation.lng),
-        new google.maps.LatLng(stepStart.lat(), stepStart.lng())
-      );
-      const distanceToEnd = google.maps.geometry.spherical.computeDistanceBetween(
-        new google.maps.LatLng(userLocation.lat, userLocation.lng),
-        new google.maps.LatLng(stepEnd.lat(), stepEnd.lng())
-      );
-
-      if (distanceToStart < 50 || distanceToEnd < 50) {
-        setCurrentStepIndex(i);
-        break;
-      }
     }
   };
 
@@ -186,8 +158,6 @@ const RoutePlanner = () => {
     setIsModalOpen(false);
   };
 
-  
-
   return (
     <div className="route-planner">
       <form onSubmit={handleSubmit} className="route-form">
@@ -196,10 +166,26 @@ const RoutePlanner = () => {
           <input
             type="text"
             value={endAddress}
-            onChange={onAddressChange} // Use debounced change handler
+            onChange={(e) => setEndAddress(e.target.value)}
             placeholder="Enter destination address"
+            required
           />
         </label>
+        {stops.map((stop, index) => (
+          <label key={index}>
+            Stop {index + 1}:
+            <input
+              type="text"
+              value={stop}
+              onChange={(e) => handleStopChange(index, e.target.value)}
+              placeholder={`Enter stop ${index + 1} address`}
+              required
+            />
+          </label>
+        ))}
+        <button type="button" onClick={addStop}>
+          Add Stop
+        </button>
         <label>
           Truck Height (ft):
           <input
@@ -207,6 +193,7 @@ const RoutePlanner = () => {
             value={truckHeight}
             onChange={(e) => setTruckHeight(e.target.value)}
             placeholder="Enter truck height"
+            required
           />
         </label>
         <label>
@@ -216,6 +203,7 @@ const RoutePlanner = () => {
             value={truckWeight}
             onChange={(e) => setTruckWeight(e.target.value)}
             placeholder="Enter truck weight"
+            required
           />
         </label>
         <button type="submit" disabled={!currentLocation || loading}>
