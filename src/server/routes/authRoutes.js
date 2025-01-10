@@ -2,7 +2,7 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
-const verifyToken = require('../middleware/authmiddlewares'); 
+const verifyToken = require('../middleware/authMiddlewares'); 
 const router = express.Router();
 
 // Signup Route
