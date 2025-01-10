@@ -93,32 +93,23 @@ router.get('/user', verifyToken, async (req, res) => {
 
 // Update User Profile
 router.put('/user', verifyToken, async (req, res) => {
-  const { username, email, password } = req.body;
-
   try {
-    if (email) {
-      const existingUser = await User.findOne({ email });
-      if (existingUser && existingUser.id !== req.user.userId) {
-        return res.status(400).json({ message: 'Email already in use' });
-      }
-    }
+    const { userId } = req.user;
+    const { username, email, password } = req.body;
 
-    const updatedData = { username, email };
+    const updates = { username, email };
     if (password) {
       const salt = await bcrypt.genSalt(10);
-      updatedData.password = await bcrypt.hash(password, salt);
+      updates.password = await bcrypt.hash(password, salt);
     }
 
-    const user = await User.findByIdAndUpdate(req.user.userId, updatedData, { new: true });
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    res.json({ message: 'Profile updated successfully', user });
-  } catch (error) {
-    console.error('Error updating user profile:', error.message);
-    res.status(500).json({ message: 'Server error' });
+    const updatedUser = await User.findByIdAndUpdate(userId, updates, { new: true });
+    res.json({ username: updatedUser.username, email: updatedUser.email });
+  } catch (err) {
+    console.error('Error updating user profile:', err);
+    res.status(500).json({ message: 'Failed to update profile.' });
   }
 });
+
 
 module.exports = router;

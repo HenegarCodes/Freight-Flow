@@ -10,12 +10,17 @@ const User = () => {
     email: '',
     password: '',
   });
+  const [error, setError] = useState('');
 
   // Fetch user data on mount
   useEffect(() => {
     const fetchUserData = async () => {
       try {
         const token = localStorage.getItem('token'); // Get token from localStorage
+        if (!token) {
+          setError('You must be logged in to access this page.');
+          return;
+        }
         const response = await axios.get('https://freight-flow.onrender.com/api/auth/user', {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -23,10 +28,12 @@ const User = () => {
         setUpdatedData({
           username: response.data.username || '',
           email: response.data.email || '',
-          password: '', // Leave blank for security reasons
+          password: '', // Leave blank for optional update
         });
+        setError(''); // Clear any previous error
       } catch (err) {
         console.error('Error fetching user data:', err);
+        setError('Failed to fetch user data. Please try again.');
       }
     };
 
@@ -41,23 +48,29 @@ const User = () => {
   const handleSave = async () => {
     try {
       const token = localStorage.getItem('token');
-      await axios.put(
+      if (!token) {
+        setError('You must be logged in to update your profile.');
+        return;
+      }
+      const response = await axios.put(
         'https://freight-flow.onrender.com/api/auth/user',
         updatedData,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       alert('Profile updated successfully!');
       setEditMode(false);
-      setUserData({ ...userData, ...updatedData });
+      setUserData({ ...userData, ...updatedData, ...response.data });
+      setError(''); // Clear any errors
     } catch (err) {
       console.error('Error updating user data:', err);
-      alert('Failed to update profile. Please try again.');
+      setError('Failed to update profile. Please try again.');
     }
   };
 
   return (
     <div className="user-page">
       <h1>User Profile</h1>
+      {error && <p className="error-message">{error}</p>}
       <div className="user-info">
         {editMode ? (
           <>
@@ -89,8 +102,10 @@ const User = () => {
                 placeholder="Enter new password (optional)"
               />
             </div>
-            <button onClick={handleSave}>Save</button>
-            <button onClick={() => setEditMode(false)}>Cancel</button>
+            <div className="button-group">
+              <button onClick={handleSave}>Save</button>
+              <button onClick={() => setEditMode(false)}>Cancel</button>
+            </div>
           </>
         ) : (
           <>
