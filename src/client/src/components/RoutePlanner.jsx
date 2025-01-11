@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { GoogleMap, LoadScript, DirectionsRenderer, Marker, TrafficLayer } from '@react-google-maps/api';
+import Modal from 'react-modal';
 import './RoutePlanner.css';
 
 const containerStyle = {
@@ -21,11 +22,12 @@ const RoutePlanner = () => {
   const [directionsResponse, setDirectionsResponse] = useState(null);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [isTracking, setIsTracking] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const mapRef = useRef(null);
   const watchIdRef = useRef(null);
-  const trackingSectionRef = useRef(null); // Reference to the section to scroll to
+  const bottomRef = useRef(null); // Reference to scroll to the bottom of the page
 
   const addStop = () => setStops([...stops, '']);
   const removeStop = (index) => setStops(stops.filter((_, i) => i !== index));
@@ -64,9 +66,9 @@ const RoutePlanner = () => {
       );
     }
 
-    // Scroll to the tracking section
-    if (trackingSectionRef.current) {
-      trackingSectionRef.current.scrollIntoView({ behavior: 'smooth' });
+    // Scroll to the bottom section
+    if (bottomRef.current) {
+      bottomRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   };
 
@@ -109,6 +111,14 @@ const RoutePlanner = () => {
       return;
     }
     fetchRoute();
+  };
+
+  const openModal = () => {
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
   };
 
   return (
@@ -164,16 +174,52 @@ const RoutePlanner = () => {
         </GoogleMap>
       </LoadScript>
 
-      <div ref={trackingSectionRef}>
+      <div>
         {isTracking ? (
           <button onClick={stopTracking} className="stop-tracking">
-            Stop Tracking
+            End Trip
           </button>
         ) : (
           <button onClick={startTracking} className="start-tracking">
             Begin Trip
           </button>
         )}
+      </div>
+
+      {directionsResponse && (
+        <div>
+          <button onClick={openModal}>View Turn-by-Turn Directions</button>
+        </div>
+      )}
+
+      <div ref={bottomRef}>
+        <Modal
+          isOpen={isModalOpen}
+          onRequestClose={closeModal}
+          className="directions-modal"
+          overlayClassName="modal-overlay"
+          contentLabel="Turn-by-Turn Directions"
+        >
+          <div className="modal-header">
+            <h2>Turn-by-Turn Directions</h2>
+            <button onClick={closeModal} className="close-button">
+              &times;
+            </button>
+          </div>
+          <div className="modal-content">
+            <ul className="directions-list">
+              {directionsResponse &&
+                directionsResponse.routes[0].legs[0].steps.map((step, index) => (
+                  <li key={index} className="direction-item">
+                    {step.instructions.replace(/<b>/g, '').replace(/<\/b>/g, '')}
+                  </li>
+                ))}
+            </ul>
+          </div>
+          <button onClick={closeModal} className="close-modal-button">
+            Close
+          </button>
+        </Modal>
       </div>
     </div>
   );
