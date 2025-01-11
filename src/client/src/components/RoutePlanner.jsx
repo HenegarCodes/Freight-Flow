@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { GoogleMap, LoadScript, DirectionsRenderer, Marker, TrafficLayer } from '@react-google-maps/api';
-import Modal from 'react-modal';
-import axios from 'axios';
 import './RoutePlanner.css';
 
 const containerStyle = {
@@ -27,6 +25,7 @@ const RoutePlanner = () => {
   const [error, setError] = useState('');
   const mapRef = useRef(null);
   const watchIdRef = useRef(null);
+  const trackingSectionRef = useRef(null); // Reference to the section to scroll to
 
   const addStop = () => setStops([...stops, '']);
   const removeStop = (index) => setStops(stops.filter((_, i) => i !== index));
@@ -59,12 +58,15 @@ const RoutePlanner = () => {
           if (mapRef.current) {
             mapRef.current.panTo(location);
           }
-
-          checkDeviation(location);
         },
         (error) => setError('Failed to track location. Please enable location services.'),
         { enableHighAccuracy: true }
       );
+    }
+
+    // Scroll to the tracking section
+    if (trackingSectionRef.current) {
+      trackingSectionRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   };
 
@@ -96,27 +98,6 @@ const RoutePlanner = () => {
         }
       }
     );
-  };
-
-  const checkDeviation = (userLocation) => {
-    if (!directionsResponse) return;
-
-    const routeLegs = directionsResponse.routes[0].legs;
-    const routePoints = routeLegs.flatMap((leg) => leg.steps.map((step) => step.start_location));
-
-    const distanceToRoute = Math.min(
-      ...routePoints.map((point) =>
-        google.maps.geometry.spherical.computeDistanceBetween(
-          new google.maps.LatLng(userLocation.lat, userLocation.lng),
-          new google.maps.LatLng(point.lat(), point.lng())
-        )
-      )
-    );
-
-    if (distanceToRoute > 50) {
-      console.log('Recalculating route due to deviation...');
-      fetchRoute();
-    }
   };
 
   const handleSubmit = (e) => {
@@ -183,24 +164,17 @@ const RoutePlanner = () => {
         </GoogleMap>
       </LoadScript>
 
-      {isTracking ? (
-        <button onClick={stopTracking} className="stop-tracking">
-          Stop Tracking
-        </button>
-      ) : (
-        <button onClick={startTracking} className="start-tracking">
-          Begin Trip
-        </button>
-      )}
-
-      {directionsResponse && (
-        <div className="directions-display">
-          <p>
-            <strong>Next Step:</strong>{' '}
-            {directionsResponse.routes[0].legs[0].steps[currentStepIndex]?.instructions.replace(/<b>/g, '').replace(/<\/b>/g, '') || 'You are approaching your destination.'}
-          </p>
-        </div>
-      )}
+      <div ref={trackingSectionRef}>
+        {isTracking ? (
+          <button onClick={stopTracking} className="stop-tracking">
+            Stop Tracking
+          </button>
+        ) : (
+          <button onClick={startTracking} className="start-tracking">
+            Begin Trip
+          </button>
+        )}
+      </div>
     </div>
   );
 };
