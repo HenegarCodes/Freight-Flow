@@ -16,7 +16,7 @@ const center = {
 const RoutePlanner = () => {
   const [currentLocation, setCurrentLocation] = useState(null);
   const [endAddress, setEndAddress] = useState('');
-  const [stops, setStops] = useState([]);
+  const [stops, setStops] = useState([]); // Holds additional stops
   const [truckHeight, setTruckHeight] = useState('');
   const [truckWeight, setTruckWeight] = useState('');
   const [directionsResponse, setDirectionsResponse] = useState(null);
@@ -102,15 +102,21 @@ const RoutePlanner = () => {
     );
   };
 
+  const validateFields = () => {
+    if (!currentLocation || !endAddress || !truckHeight || !truckWeight) {
+      setError('Please provide all required fields.');
+      return false;
+    }
+    return true;
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     setError('');
     setDirectionsResponse(null);
-    if (!currentLocation || !endAddress) {
-      setError('Please provide all required fields.');
-      return;
+    if (validateFields()) {
+      fetchRoute();
     }
-    fetchRoute();
   };
 
   const openModal = () => {
@@ -126,7 +132,13 @@ const RoutePlanner = () => {
       <form onSubmit={handleSubmit} className="route-form">
         <label>
           Destination Address:
-          <input type="text" value={endAddress} onChange={(e) => setEndAddress(e.target.value)} required />
+          <input
+            type="text"
+            value={endAddress}
+            onChange={(e) => setEndAddress(e.target.value)}
+            placeholder="Enter destination address"
+            required
+          />
         </label>
         {stops.map((stop, index) => (
           <div key={index} className="stop-field">
@@ -136,9 +148,16 @@ const RoutePlanner = () => {
                 type="text"
                 value={stop}
                 onChange={(e) => handleStopChange(index, e.target.value)}
+                placeholder={`Enter stop ${index + 1} address`}
                 required
               />
-              <button type="button" onClick={() => removeStop(index)}>✕</button>
+              <button
+                type="button"
+                className="remove-stop"
+                onClick={() => removeStop(index)}
+              >
+                ✕
+              </button>
             </label>
           </div>
         ))}
@@ -147,11 +166,23 @@ const RoutePlanner = () => {
         </button>
         <label>
           Truck Height (ft):
-          <input type="number" value={truckHeight} onChange={(e) => setTruckHeight(e.target.value)} required />
+          <input
+            type="number"
+            value={truckHeight}
+            onChange={(e) => setTruckHeight(e.target.value)}
+            placeholder="Enter truck height"
+            required
+          />
         </label>
         <label>
           Truck Weight (lbs):
-          <input type="number" value={truckWeight} onChange={(e) => setTruckWeight(e.target.value)} required />
+          <input
+            type="number"
+            value={truckWeight}
+            onChange={(e) => setTruckWeight(e.target.value)}
+            placeholder="Enter truck weight"
+            required
+          />
         </label>
         <button type="submit" disabled={loading}>
           Get Route
