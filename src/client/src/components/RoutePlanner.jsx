@@ -238,15 +238,15 @@ const RoutePlanner = () => {
             </button>
           </div>
           <div className="modal-content">
-            <ul className="directions-list">
-              {directionsResponse &&
-                directionsResponse.routes[0].legs[0].steps.map((step, index) => (
-                  <li key={index} className="direction-item">
-                    {step.instructions.replace(/<b>/g, '').replace(/<\/b>/g, '')}
-                  </li>
-                ))}
-            </ul>
-          </div>
+  <ul className="directions-list">
+    {directionsResponse &&
+      directionsResponse.routes[0].legs[0].steps.map((step, index) => (
+        <li key={index} className="direction-item">
+          {step.instructions.replace(/<[^>]+>/g, '')}
+        </li>
+      ))}
+  </ul>
+</div>
           <button onClick={closeModal} className="close-modal-button">
             Close
           </button>
