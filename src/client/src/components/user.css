@@ -1,55 +1,93 @@
 .user-page {
-    max-width: 600px;
-    margin: 0 auto;
-    padding: 20px;
-    text-align: left;
-    font-family: Arial, sans-serif;
-  }
-  
-  .user-info {
-    background: #f9f9f9;
-    padding: 15px;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  }
-  
-  .form-group {
-    margin-bottom: 15px;
-  }
-  
-  .form-group label {
-    display: block;
-    font-weight: bold;
-    margin-bottom: 5px;
-  }
-  
-  .form-group input {
-    width: 100%;
-    padding: 10px;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-  }
-  
-  button {
-    padding: 10px 20px;
-    margin: 10px 5px;
-    border: none;
-    border-radius: 5px;
-    color: white;
-    background: #007bff;
-    cursor: pointer;
-    transition: background 0.3s ease;
-  }
-  
-  button:hover {
-    background: #0056b3;
-  }
-  
-  button:last-child {
-    background: #dc3545;
-  }
-  
-  button:last-child:hover {
-    background: #a71d2a;
-  }
-  
+  background: linear-gradient(135deg, #1e1e2f, #2a2a40);
+  color: #f5f5f5;
+  padding: 2rem;
+  border-radius: 15px;
+  box-shadow: 0px 8px 20px rgba(0, 0, 0, 0.5);
+  max-width: 600px;
+  margin: auto;
+  font-family: 'Roboto', sans-serif;
+}
+
+.profile-header {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.profile-header h1 {
+  font-size: 2rem;
+  color: #6c63ff;
+  text-shadow: 0px 3px 6px rgba(0, 0, 0, 0.3);
+}
+
+.user-info {
+  background: #2f2f45;
+  padding: 1.5rem;
+  border-radius: 10px;
+  box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.user-info p {
+  font-size: 1.2rem;
+  margin: 0.5rem 0;
+}
+
+.user-info strong {
+  color: #6c63ff;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-group label {
+  display: block;
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 0.5rem;
+  border-radius: 5px;
+  border: none;
+  background: #3a3a50;
+  color: #fff;
+  font-size: 1rem;
+}
+
+.button-group {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+button {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 20px;
+  font-size: 1rem;
+  font-weight: bold;
+  color: #fff;
+  background: #6c63ff;
+  cursor: pointer;
+  transition: transform 0.2s, background-color 0.2s;
+}
+
+button:hover {
+  background: #4b47d4;
+  transform: scale(1.05);
+}
+
+button:active {
+  background: #3a36b1;
+}
+
+.error-message {
+  color: #ff6b6b;
+  background: #3a1e1e;
+  padding: 1rem;
+  border-radius: 10px;
+  text-align: center;
+  margin-bottom: 1rem;
+}

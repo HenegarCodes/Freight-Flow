@@ -12,11 +12,10 @@ const User = () => {
   });
   const [error, setError] = useState('');
 
-  // Fetch user data on mount
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        const token = localStorage.getItem('token'); // Get token from localStorage
+        const token = localStorage.getItem('token');
         if (!token) {
           setError('You must be logged in to access this page.');
           return;
@@ -28,9 +27,9 @@ const User = () => {
         setUpdatedData({
           username: response.data.username || '',
           email: response.data.email || '',
-          password: '', // Leave blank for optional update
+          password: '',
         });
-        setError(''); // Clear any previous error
+        setError('');
       } catch (err) {
         console.error('Error fetching user data:', err);
         setError('Failed to fetch user data. Please try again.');
@@ -60,7 +59,7 @@ const User = () => {
       alert('Profile updated successfully!');
       setEditMode(false);
       setUserData({ ...userData, ...updatedData, ...response.data });
-      setError(''); // Clear any errors
+      setError('');
     } catch (err) {
       console.error('Error updating user data:', err);
       setError('Failed to update profile. Please try again.');
@@ -69,7 +68,9 @@ const User = () => {
 
   return (
     <div className="user-page">
-      <h1>User Profile</h1>
+      <div className="profile-header">
+        <h1>User Profile</h1>
+      </div>
       {error && <p className="error-message">{error}</p>}
       <div className="user-info">
         {editMode ? (
@@ -81,6 +82,7 @@ const User = () => {
                 name="username"
                 value={updatedData.username}
                 onChange={handleInputChange}
+                placeholder="Enter your username"
               />
             </div>
             <div className="form-group">
@@ -90,6 +92,7 @@ const User = () => {
                 name="email"
                 value={updatedData.email}
                 onChange={handleInputChange}
+                placeholder="Enter your email"
               />
             </div>
             <div className="form-group">
@@ -99,12 +102,12 @@ const User = () => {
                 name="password"
                 value={updatedData.password}
                 onChange={handleInputChange}
-                placeholder="Enter new password (optional)"
+                placeholder="Enter a new password (optional)"
               />
             </div>
             <div className="button-group">
-              <button onClick={handleSave}>Save</button>
-              <button onClick={() => setEditMode(false)}>Cancel</button>
+              <button onClick={handleSave} className="save-button">Save</button>
+              <button onClick={() => setEditMode(false)} className="cancel-button">Cancel</button>
             </div>
           </>
         ) : (
@@ -115,7 +118,7 @@ const User = () => {
             <p>
               <strong>Email:</strong> {userData.email}
             </p>
-            <button onClick={() => setEditMode(true)}>Edit Profile</button>
+            <button onClick={() => setEditMode(true)} className="edit-button">Edit Profile</button>
           </>
         )}
       </div>
