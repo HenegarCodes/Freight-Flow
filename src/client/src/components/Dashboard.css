@@ -1,119 +1,195 @@
+/* General Dashboard Styles */
 .dashboard {
-  padding: 20px;
-  max-width: 1200px;
-  margin: 0 auto;
-  min-height: 100vh; 
-  overflow: auto; /* Allow scrolling for overflowing content */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem;
+  background: linear-gradient(135deg, #1e1e2f, #2a2a40);
+  color: #f5f5f5;
+  font-family: 'Roboto', sans-serif;
+  min-height: 100vh;
+  box-shadow: 0px 0px 20px rgba(0, 0, 0, 0.5);
+}
+
+/* Header */
+.dashboard-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.dashboard-header h1 {
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: #6c63ff;
+  text-shadow: 0px 2px 5px rgba(0, 0, 0, 0.5);
+}
+
+.dashboard-header p {
+  font-size: 1.2rem;
+  color: #d1d1e0;
 }
 
 /* Tabs */
 .tabs {
   display: flex;
-  justify-content: space-around;
-  margin-bottom: 20px;
+  gap: 1rem;
+  margin-bottom: 2rem;
 }
 
 .tab {
-  padding: 10px 20px;
-  background-color: #007bff;
-  color: white;
+  padding: 0.5rem 1rem;
+  background: #6c63ff;
+  color: #fff;
+  font-weight: bold;
   border: none;
-  border-radius: 5px;
+  border-radius: 20px;
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  transition: transform 0.2s, background-color 0.2s;
+  box-shadow: 0px 4px 10px rgba(108, 99, 255, 0.3);
 }
 
 .tab:hover {
-  background-color: #0056b3;
-}
-
-/* Trips List */
-.trips-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 20px;
-  justify-content: center;
-}
-
-.trip-item {
-  background-color: #f8f9fa;
-  border: 1px solid #ddd;
-  border-radius: 5px;
-  padding: 10px;
-  width: 300px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  transition: transform 0.3s ease;
-}
-
-.trip-item:hover {
+  background: #4b47d4;
   transform: scale(1.05);
 }
 
-/* Trip Details */
-.trip-details, .averages, .fun-section {
-  text-align: center;
-  margin-top: 20px;
+.tab:active {
+  background: #3a36b1;
+  transform: scale(0.95);
 }
 
-/* Modal */
-.auth-modal, .feedback-modal {
-  max-width: 90%;
-  margin: 0 auto;
-  padding: 20px;
-  background-color: white;
+/* Recent Trips Section */
+.trips-section {
+  width: 100%;
+  max-width: 800px;
+}
+
+.trips-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.trip-card {
+  background: #2f2f45;
+  padding: 1rem;
   border-radius: 10px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-  overflow-y: auto; 
-  max-height: 90vh; 
+  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s, box-shadow 0.2s;
+  cursor: pointer;
 }
 
-/* Responsive Styles */
+.trip-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.4);
+}
+
+.trip-card p {
+  margin: 0.5rem 0;
+  font-size: 1rem;
+  color: #d1d1e0;
+}
+
+.trip-card strong {
+  color: #fff;
+}
+
+/* Averages Section */
+.averages-section {
+  text-align: center;
+  margin-top: 1rem;
+}
+
+.averages-section h2 {
+  font-size: 2rem;
+  color: #6c63ff;
+}
+
+.averages-section p {
+  font-size: 1.2rem;
+  color: #d1d1e0;
+  margin: 0.5rem 0;
+}
+
+/* Footer */
+.dashboard-footer {
+  margin-top: 3rem;
+  text-align: center;
+  color: #a1a1b3;
+  font-size: 1rem;
+}
+
+.dashboard-footer strong {
+  color: #6c63ff;
+}
+
+/* Modals */
+.auth-modal {
+  background: #2f2f45;
+  color: #fff;
+  padding: 2rem;
+  border-radius: 10px;
+  max-width: 400px;
+  margin: auto;
+}
+
+.auth-modal h2 {
+  font-size: 1.8rem;
+  margin-bottom: 1rem;
+  color: #6c63ff;
+}
+
+.auth-modal p {
+  font-size: 1rem;
+  color: #d1d1e0;
+}
+
+.auth-modal .sign-in-link {
+  display: inline-block;
+  margin-top: 1rem;
+  color: #6c63ff;
+  text-decoration: none;
+  font-weight: bold;
+}
+
+.auth-modal .sign-in-link:hover {
+  text-decoration: underline;
+}
+
+/* Buttons */
+button {
+  font-size: 1rem;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 20px;
+  background: #6c63ff;
+  color: #fff;
+  font-weight: bold;
+  cursor: pointer;
+  transition: transform 0.2s, background-color 0.2s;
+}
+
+button:hover {
+  background: #4b47d4;
+  transform: scale(1.05);
+}
+
+button:active {
+  background: #3a36b1;
+  transform: scale(0.95);
+}
+
+/* Media Queries */
 @media (max-width: 768px) {
-  .tabs {
-    flex-direction: column;
-    align-items: center;
+  .trips-container {
+    grid-template-columns: 1fr;
   }
 
-  .tab {
-    margin-bottom: 10px;
-    width: 90%;
-    text-align: center;
+  .dashboard-header h1 {
+    font-size: 2rem;
   }
 
-  .trips-list {
-    flex-direction: column;
-    align-items: center;
-  }
-
-  .trip-item {
-    width: 90%;
-  }
-
-  .trip-details, .averages, .fun-section {
-    padding: 10px;
-  }
-}
-
-@media (max-width: 480px) {
-  .tabs {
-    flex-direction: column;
-  }
-
-  .tab {
-    font-size: 14px;
-    padding: 8px 15px;
-  }
-
-  .trips-list {
-    gap: 10px;
-  }
-
-  .trip-item {
-    padding: 8px;
-    font-size: 14px;
-  }
-
-  .trip-details, .averages, .fun-section {
-    font-size: 14px;
+  .dashboard-header p {
+    font-size: 1rem;
   }
 }

@@ -41,29 +41,29 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchTrips = async () => {
       if (!isLoggedIn) return;
-    
+
       try {
         const token = localStorage.getItem('token');
-        console.log('Using token:', token); // Debugging
+        console.log('Using token:', token);
         const response = await axios.get('https://freight-flow.onrender.com/api/trips/recent', {
           headers: { Authorization: `Bearer ${token}` },
         });
-        console.log('Fetched trips response:', response.data); // Debugging
-    
+        console.log('Fetched trips response:', response.data);
+
         if (response.data && Array.isArray(response.data)) {
           setRecentTrips(response.data);
-    
+
           // Calculate averages
           const avgTime = (
             response.data.reduce((sum, trip) => sum + parseFloat(trip.route.duration.replace(' mins', '')), 0) /
             response.data.length
           ).toFixed(2);
-    
+
           const avgMileage = (
             response.data.reduce((sum, trip) => sum + parseFloat(trip.route.distance.replace(' mi', '')), 0) /
             response.data.length
           ).toFixed(2);
-    
+
           setAverages({ time: avgTime, mileage: avgMileage });
         } else {
           console.error('Unexpected response format:', response.data);
@@ -74,29 +74,11 @@ const Dashboard = () => {
         setError('Failed to load trips. Please try again later.');
       }
     };
-    
 
     fetchTrips();
   }, [isLoggedIn]);
 
-  // Handle feedback form submission
-  const submitFeedback = async (e) => {
-    e.preventDefault();
-    try {
-      await axios.post('/api/feedback', feedback);
-      setFeedback({ rating: '', comments: '' });
-      setShowFeedbackForm(false);
-      alert('Feedback sent successfully!');
-    } catch (err) {
-      console.error('Error sending feedback:', err);
-      alert('Failed to send feedback. Please try again.');
-    }
-  };
-
-  // Handle modal close
-  const closeModal = () => {
-    setIsModalOpen(false);
-  };
+  const closeModal = () => setIsModalOpen(false);
 
   return (
     <div className="dashboard">
@@ -118,11 +100,14 @@ const Dashboard = () => {
         </Modal>
       ) : (
         <>
-          <h1>Dashboard</h1>
+          <header className="dashboard-header">
+            <h1>Welcome to Your Dashboard</h1>
+            <p>Monitor recent trips, analyze performance, and improve efficiency.</p>
+          </header>
 
           <div className="tabs">
             <button className="tab" onClick={() => setSelectedTrip(null)}>
-              5 Most Recent Trips
+              Recent Trips
             </button>
             <button className="tab" onClick={() => setSelectedTrip('averages')}>
               Averages
@@ -130,54 +115,34 @@ const Dashboard = () => {
           </div>
 
           {selectedTrip === null && (
-            <div className="trips-list">
+            <div className="trips-section">
               <h2>Recent Trips</h2>
               {recentTrips.length > 0 ? (
-                recentTrips.map((trip, index) => (
-                  <div
-                    key={trip._id}
-                    className="trip-item"
-                    onClick={() => setSelectedTrip(trip)}
-                  >
-                    <p>
-                      <strong>Trip {index + 1}:</strong> {trip.start} → {trip.end}
-                    </p>
-                    <p>
-                      <strong>Date:</strong> {new Date(trip.date).toLocaleDateString()}
-                    </p>
-                  </div>
-                ))
+                <div className="trips-container">
+                  {recentTrips.map((trip, index) => (
+                    <div
+                      key={trip._id}
+                      className="trip-card"
+                      onClick={() => setSelectedTrip(trip)}
+                    >
+                      <p>
+                        <strong>Trip {index + 1}:</strong> {trip.start} → {trip.end}
+                      </p>
+                      <p>
+                        <strong>Date:</strong> {new Date(trip.date).toLocaleDateString()}
+                      </p>
+                    </div>
+                  ))}
+                </div>
               ) : (
                 <p>No recent trips found.</p>
               )}
             </div>
           )}
 
-          {selectedTrip && selectedTrip !== 'averages' && (
-            <div className="trip-details">
-              <h2>Trip Details</h2>
-              <p>
-                <strong>Start:</strong> {selectedTrip.start}
-              </p>
-              <p>
-                <strong>End:</strong> {selectedTrip.end}
-              </p>
-              <p>
-                <strong>Distance:</strong> {selectedTrip.route.distance}
-              </p>
-              <p>
-                <strong>Duration:</strong> {selectedTrip.route.duration}
-              </p>
-              <p>
-                <strong>Date:</strong> {new Date(selectedTrip.date).toLocaleDateString()}
-              </p>
-              <button onClick={() => setSelectedTrip(null)}>Back to Recent Trips</button>
-            </div>
-          )}
-
           {selectedTrip === 'averages' && (
-            <div className="averages">
-              <h2>Averages</h2>
+            <div className="averages-section">
+              <h2>Trip Averages</h2>
               <p>
                 <strong>Average Distance:</strong> {averages.mileage} miles
               </p>
@@ -188,18 +153,16 @@ const Dashboard = () => {
             </div>
           )}
 
-          <div className="fun-section">
-            <h2>Fun Fact</h2>
+          <footer className="dashboard-footer">
             <p>
               Based on your trips, you've used approximately{' '}
               <strong>
                 {recentTrips.reduce((sum, trip) => sum + parseFloat(trip.route.distance.replace(' mi', '')) * 0.14, 0).toFixed(2)}{' '}
                 gallons of gas
               </strong>{' '}
-              (assuming 7 MPG for freight trucks)!
+              (assuming 7 MPG for freight trucks).
             </p>
-            <button onClick={() => setShowFeedbackForm(true)}>Send Feedback</button>
-          </div>
+          </footer>
         </>
       )}
     </div>
