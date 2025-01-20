@@ -25,8 +25,10 @@ const RoutePlanner = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [notification, setNotification] = useState('');
   const mapRef = useRef(null);
   const watchIdRef = useRef(null);
+  const recalculationIntervalRef = useRef(null);
 
   const addStop = () => {
     setStops([...stops, '']);
@@ -44,56 +46,6 @@ const RoutePlanner = () => {
     setStops(newStops);
   };
 
-  const fetchRoute = () => {
-    setLoading(true);
-    const directionsService = new window.google.maps.DirectionsService();
-
-    directionsService.route(
-      {
-        origin: currentLocation,
-        destination: endAddress,
-        waypoints: stops.map((stop) => ({ location: stop, stopover: true })),
-        travelMode: window.google.maps.TravelMode.DRIVING,
-      },
-      (result, status) => {
-        setLoading(false);
-        if (status === window.google.maps.DirectionsStatus.OK) {
-          setDirectionsResponse(result);
-          setError('');
-        } else {
-          console.error('Error fetching route:', status);
-          setError('Failed to fetch route. Please try again.');
-        }
-      }
-    );
-  };
-
-  const updateCurrentStep = (userLocation) => {
-    if (!directionsResponse) return;
-
-    const steps = directionsResponse.routes[0].legs[0].steps;
-
-    for (let i = 0; i < steps.length; i++) {
-      const stepStart = steps[i].start_location;
-      const stepEnd = steps[i].end_location;
-
-      const distanceToStart = google.maps.geometry.spherical.computeDistanceBetween(
-        new google.maps.LatLng(userLocation.lat, userLocation.lng),
-        new google.maps.LatLng(stepStart.lat(), stepStart.lng())
-      );
-
-      const distanceToEnd = google.maps.geometry.spherical.computeDistanceBetween(
-        new google.maps.LatLng(userLocation.lat, userLocation.lng),
-        new google.maps.LatLng(stepEnd.lat(), stepEnd.lng())
-      );
-
-      if (distanceToEnd < 50) {
-        setCurrentStepIndex(i + 1);
-        break;
-      }
-    }
-  };
-
   useEffect(() => {
     if (navigator.geolocation) {
       watchIdRef.current = navigator.geolocation.watchPosition(
@@ -105,14 +57,12 @@ const RoutePlanner = () => {
           if (mapRef.current) {
             mapRef.current.panTo(location);
           }
-
-          updateCurrentStep(location); // Update steps in real-time
         },
         (error) => {
           console.error('Error fetching current location:', error.message);
           setError('Failed to get current location. Please enable location services.');
         },
-        { enableHighAccuracy: true, maximumAge: 1000 } // Real-time updates
+        { enableHighAccuracy: true }
       );
     } else {
       setError('Geolocation is not supported by your browser.');
@@ -122,8 +72,108 @@ const RoutePlanner = () => {
       if (watchIdRef.current) {
         navigator.geolocation.clearWatch(watchIdRef.current);
       }
+      if (recalculationIntervalRef.current) {
+        clearInterval(recalculationIntervalRef.current);
+      }
     };
-  }, [directionsResponse]);
+  }, []);
+
+  const fetchRoute = () => {
+    setLoading(true);
+    const directionsService = new window.google.maps.DirectionsService();
+
+    directionsService.route(
+      {
+        origin: currentLocation,
+        destination: endAddress,
+        waypoints: stops.map((stop) => ({ location: stop, stopover: true })),
+        travelMode: window.google.maps.TravelMode.DRIVING,
+        drivingOptions: {
+          departureTime: new Date(),
+          trafficModel: 'best_guess',
+        },
+      },
+      (result, status) => {
+        setLoading(false);
+        if (status === window.google.maps.DirectionsStatus.OK) {
+          setDirectionsResponse(result);
+          setError('');
+          saveTrip(result);
+          startRecalculation(result);
+        } else {
+          console.error('Error fetching route:', status);
+          setError('Failed to fetch route. Please try again.');
+        }
+      }
+    );
+  };
+
+  const saveTrip = async (route) => {
+    const token = localStorage.getItem('token');
+    const decodedToken = JSON.parse(atob(token.split('.')[1]));
+    const userId = decodedToken.userId;
+
+    const optimizedRoute = {
+      distance: route.routes[0].legs[0].distance.text,
+      duration: route.routes[0].legs[0].duration.text,
+      waypoints: route.routes[0].legs[0].steps.map((step) => ({
+        start: step.start_location,
+        end: step.end_location,
+        instructions: step.instructions,
+      })),
+    };
+
+    try {
+      await axios.post(
+        '/api/trips',
+        {
+          user: userId,
+          start: currentLocation,
+          end: endAddress,
+          stops,
+          truckHeight,
+          truckWeight,
+          route: optimizedRoute,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+    } catch (error) {
+      console.error('Error saving trip:', error.message);
+    }
+  };
+
+  const startRecalculation = (initialRoute) => {
+    recalculationIntervalRef.current = setInterval(() => {
+      const directionsService = new window.google.maps.DirectionsService();
+      directionsService.route(
+        {
+          origin: currentLocation,
+          destination: endAddress,
+          waypoints: stops.map((stop) => ({ location: stop, stopover: true })),
+          travelMode: window.google.maps.TravelMode.DRIVING,
+          drivingOptions: {
+            departureTime: new Date(),
+            trafficModel: 'best_guess',
+          },
+        },
+        (newResult, status) => {
+          if (status === window.google.maps.DirectionsStatus.OK) {
+            const newDuration = newResult.routes[0].legs[0].duration.value;
+            const oldDuration = initialRoute.routes[0].legs[0].duration.value;
+            if (newDuration < oldDuration) {
+              setDirectionsResponse(newResult);
+              setNotification('Route updated to save time!');
+              setTimeout(() => setNotification(''), 5000);
+            }
+          }
+        }
+      );
+    }, 120000); // Recalculate every 2 minutes
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -138,6 +188,14 @@ const RoutePlanner = () => {
       return;
     }
     fetchRoute();
+  };
+
+  const openModal = () => {
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
   };
 
   return (
@@ -164,7 +222,11 @@ const RoutePlanner = () => {
                 placeholder={`Enter stop ${index + 1} address`}
                 required
               />
-              <button type="button" className="remove-stop" onClick={() => removeStop(index)}>
+              <button
+                type="button"
+                className="remove-stop"
+                onClick={() => removeStop(index)}
+              >
                 ✕
               </button>
             </label>
@@ -194,10 +256,11 @@ const RoutePlanner = () => {
           />
         </label>
         <button type="submit" disabled={!currentLocation || loading}>
-          Get Route
+          Start Trip
         </button>
       </form>
 
+      {notification && <div className="notification">{notification}</div>}
       {error && <p style={{ color: 'red' }}>{error}</p>}
       {loading && <div className="spinner">Loading route...</div>}
 
@@ -212,6 +275,47 @@ const RoutePlanner = () => {
           {directionsResponse && <DirectionsRenderer directions={directionsResponse} />}
         </GoogleMap>
       </LoadScript>
+
+      {directionsResponse && (
+        <div className="directions-display">
+          <p>
+            <strong>Current Step:</strong>{' '}
+            {directionsResponse.routes[0].legs[0].steps[currentStepIndex]?.instructions.replace(
+              /<b>/g,
+              ''
+            ).replace(/<\/b>/g, '')}
+          </p>
+          <button onClick={openModal}>View Full Directions</button>
+        </div>
+      )}
+
+      <Modal
+        isOpen={isModalOpen}
+        onRequestClose={closeModal}
+        className="directions-modal"
+        overlayClassName="modal-overlay"
+        contentLabel="Turn-by-Turn Directions"
+      >
+        <div className="modal-header">
+          <h2>Turn-by-Turn Directions</h2>
+          <button onClick={closeModal} className="close-button">
+            &times;
+          </button>
+        </div>
+        <div className="modal-content">
+          <ul className="directions-list">
+            {directionsResponse &&
+              directionsResponse.routes[0].legs[0].steps.map((step, index) => (
+                <li key={index} className="direction-item">
+                  {step.instructions.replace(/<b>/g, '').replace(/<\/b>/g, '')}
+                </li>
+              ))}
+          </ul>
+        </div>
+        <button onClick={closeModal} className="close-modal-button">
+          Close
+        </button>
+      </Modal>
     </div>
   );
 };
