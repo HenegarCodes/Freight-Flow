@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { GoogleMap, LoadScript, DirectionsRenderer, Marker } from '@react-google-maps/api';
 import Modal from 'react-modal';
 import axios from 'axios';
@@ -21,48 +21,65 @@ const RoutePlanner = () => {
   const [truckHeight, setTruckHeight] = useState('');
   const [truckWeight, setTruckWeight] = useState('');
   const [directionsResponse, setDirectionsResponse] = useState(null);
-  const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [isTripStarted, setIsTripStarted] = useState(false); // For user-triggered geolocation
+  const [isTripStarted, setIsTripStarted] = useState(false); // Controls trip start
   const mapRef = useRef(null);
   const watchIdRef = useRef(null);
 
+  // Trigger geolocation and route tracking
   const handleStartTrip = () => {
-    if (navigator.geolocation) {
-      setIsTripStarted(true);
-      watchIdRef.current = navigator.geolocation.watchPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          const location = { lat: latitude, lng: longitude };
-          setCurrentLocation(location);
-
-          if (mapRef.current) {
-            mapRef.current.panTo(location);
-          }
-
-          if (directionsResponse && !isOnRoute(location, directionsResponse)) {
-            fetchRoute(); // Recalculate route
-          }
-        },
-        (error) => {
-          console.error('Error fetching current location:', error.message);
-          setError('Failed to get current location. Please enable location services.');
-        },
-        { enableHighAccuracy: true }
-      );
-    } else {
+    if (!navigator.geolocation) {
       setError('Geolocation is not supported by your browser.');
+      return;
     }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        const location = { lat: latitude, lng: longitude };
+        setCurrentLocation(location);
+        setIsTripStarted(true);
+        startTracking();
+      },
+      (error) => {
+        console.error('Error fetching current location:', error.message);
+        setError('Failed to get current location. Please enable location services.');
+      },
+      { enableHighAccuracy: true }
+    );
+  };
+
+  const startTracking = () => {
+    watchIdRef.current = navigator.geolocation.watchPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        const location = { lat: latitude, lng: longitude };
+        setCurrentLocation(location);
+
+        if (mapRef.current) {
+          mapRef.current.panTo(location);
+        }
+
+        if (directionsResponse && !isOnRoute(location, directionsResponse)) {
+          fetchRoute(); // Recalculate route if off track
+        }
+      },
+      (error) => {
+        console.error('Error updating location:', error.message);
+        setError('Failed to update location.');
+      },
+      { enableHighAccuracy: true }
+    );
   };
 
   const isOnRoute = (location, directions) => {
     if (!directions) return true;
     const steps = directions.routes[0].legs[0].steps;
     for (let step of steps) {
-      const distance = google.maps.geometry.spherical.computeDistanceBetween(
-        new google.maps.LatLng(location.lat, location.lng),
+      const distance = window.google.maps.geometry.spherical.computeDistanceBetween(
+        new window.google.maps.LatLng(location.lat, location.lng),
         step.end_location
       );
       if (distance < 50) return true;
@@ -108,13 +125,11 @@ const RoutePlanner = () => {
     fetchRoute();
   };
 
-  const openModal = () => {
-    setIsModalOpen(true);
-  };
+  const openModal = () => setIsModalOpen(true);
+  const closeModal = () => setIsModalOpen(false);
 
-  const closeModal = () => {
-    setIsModalOpen(false);
-  };
+  const addStop = () => setStops([...stops, '']);
+  const removeStop = (index) => setStops(stops.filter((_, i) => i !== index));
 
   return (
     <div className="route-planner">
@@ -144,13 +159,13 @@ const RoutePlanner = () => {
                 placeholder={`Enter stop ${index + 1} address`}
                 required
               />
-              <button type="button" onClick={() => setStops(stops.filter((_, i) => i !== index))}>
+              <button type="button" onClick={() => removeStop(index)}>
                 ✕
               </button>
             </label>
           </div>
         ))}
-        <button type="button" onClick={() => setStops([...stops, ''])}>
+        <button type="button" onClick={addStop}>
           Add Stop
         </button>
         <label>
