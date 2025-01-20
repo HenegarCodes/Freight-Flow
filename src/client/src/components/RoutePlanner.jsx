@@ -25,11 +25,13 @@ const RoutePlanner = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isTripStarted, setIsTripStarted] = useState(false); // For user-triggered geolocation
   const mapRef = useRef(null);
   const watchIdRef = useRef(null);
 
-  useEffect(() => {
+  const handleStartTrip = () => {
     if (navigator.geolocation) {
+      setIsTripStarted(true);
       watchIdRef.current = navigator.geolocation.watchPosition(
         (position) => {
           const { latitude, longitude } = position.coords;
@@ -53,13 +55,7 @@ const RoutePlanner = () => {
     } else {
       setError('Geolocation is not supported by your browser.');
     }
-
-    return () => {
-      if (watchIdRef.current) {
-        navigator.geolocation.clearWatch(watchIdRef.current);
-      }
-    };
-  }, [directionsResponse]);
+  };
 
   const isOnRoute = (location, directions) => {
     if (!directions) return true;
@@ -85,7 +81,7 @@ const RoutePlanner = () => {
         waypoints: stops.map((stop) => ({ location: stop, stopover: true })),
         travelMode: window.google.maps.TravelMode.DRIVING,
         drivingOptions: {
-          departureTime: new Date(), // Live traffic
+          departureTime: new Date(),
         },
       },
       (result, status) => {
@@ -101,24 +97,6 @@ const RoutePlanner = () => {
     );
   };
 
-  const showNotification = (message) => {
-    if (Notification.permission === 'granted') {
-      new Notification('Freight Flow', {
-        body: message,
-        icon: '/path/to/icon.png',
-      });
-    } else if (Notification.permission !== 'denied') {
-      Notification.requestPermission().then((permission) => {
-        if (permission === 'granted') {
-          new Notification('Freight Flow', {
-            body: message,
-            icon: '/path/to/icon.png',
-          });
-        }
-      });
-    }
-  };
-
   const handleSubmit = (e) => {
     e.preventDefault();
     setError('');
@@ -128,20 +106,6 @@ const RoutePlanner = () => {
       return;
     }
     fetchRoute();
-  };
-
-  const handleTurnNotifications = () => {
-    if (directionsResponse) {
-      const steps = directionsResponse.routes[0].legs[0].steps;
-      const interval = setInterval(() => {
-        const nextStep = steps[currentStepIndex];
-        if (nextStep) {
-          showNotification(`Upcoming turn: ${nextStep.instructions}`);
-          setCurrentStepIndex(currentStepIndex + 1);
-        }
-      }, 15000); // Notify every 15 seconds
-      return () => clearInterval(interval);
-    }
   };
 
   const openModal = () => {
@@ -189,25 +153,51 @@ const RoutePlanner = () => {
         <button type="button" onClick={() => setStops([...stops, ''])}>
           Add Stop
         </button>
-        <button type="submit" disabled={loading}>
+        <label>
+          Truck Height (ft):
+          <input
+            type="number"
+            value={truckHeight}
+            onChange={(e) => setTruckHeight(e.target.value)}
+            placeholder="Enter truck height"
+            required
+          />
+        </label>
+        <label>
+          Truck Weight (lbs):
+          <input
+            type="number"
+            value={truckWeight}
+            onChange={(e) => setTruckWeight(e.target.value)}
+            placeholder="Enter truck weight"
+            required
+          />
+        </label>
+        <button type="submit" disabled={loading || !isTripStarted}>
           Get Route
         </button>
       </form>
 
+      <button onClick={handleStartTrip} disabled={isTripStarted}>
+        Start Trip
+      </button>
+
       {error && <p style={{ color: 'red' }}>{error}</p>}
       {loading && <div>Loading route...</div>}
 
-      <LoadScript googleMapsApiKey={process.env.REACT_APP_GOOGLE_MAPS_API_KEY}>
-        <GoogleMap
-          mapContainerStyle={containerStyle}
-          center={currentLocation || center}
-          zoom={13}
-          onLoad={(map) => (mapRef.current = map)}
-        >
-          {currentLocation && <Marker position={currentLocation} />}
-          {directionsResponse && <DirectionsRenderer directions={directionsResponse} />}
-        </GoogleMap>
-      </LoadScript>
+      {isTripStarted && (
+        <LoadScript googleMapsApiKey={process.env.REACT_APP_GOOGLE_MAPS_API_KEY}>
+          <GoogleMap
+            mapContainerStyle={containerStyle}
+            center={currentLocation || center}
+            zoom={13}
+            onLoad={(map) => (mapRef.current = map)}
+          >
+            {currentLocation && <Marker position={currentLocation} />}
+            {directionsResponse && <DirectionsRenderer directions={directionsResponse} />}
+          </GoogleMap>
+        </LoadScript>
+      )}
 
       {directionsResponse && (
         <div className="directions-display">
