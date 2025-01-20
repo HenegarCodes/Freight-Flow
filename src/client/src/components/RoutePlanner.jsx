@@ -21,14 +21,14 @@ const RoutePlanner = () => {
   const [truckHeight, setTruckHeight] = useState('');
   const [truckWeight, setTruckWeight] = useState('');
   const [directionsResponse, setDirectionsResponse] = useState(null);
+  const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [isTripStarted, setIsTripStarted] = useState(false); // Controls trip start
+  const [isTripStarted, setIsTripStarted] = useState(false);
   const mapRef = useRef(null);
   const watchIdRef = useRef(null);
 
-  // Trigger geolocation and route tracking
   const handleStartTrip = () => {
     if (!navigator.geolocation) {
       setError('Geolocation is not supported by your browser.');
