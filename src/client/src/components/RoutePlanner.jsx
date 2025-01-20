@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { GoogleMap, LoadScript, DirectionsRenderer, Marker, TrafficLayer } from '@react-google-maps/api';
+import { GoogleMap, LoadScript, DirectionsRenderer, Marker } from '@react-google-maps/api';
 import Modal from 'react-modal';
+import axios from 'axios';
 import './RoutePlanner.css';
 
 const containerStyle = {
@@ -16,40 +17,18 @@ const center = {
 const RoutePlanner = () => {
   const [currentLocation, setCurrentLocation] = useState(null);
   const [endAddress, setEndAddress] = useState('');
-  const [stops, setStops] = useState([]); // Holds additional stops
+  const [stops, setStops] = useState([]);
   const [truckHeight, setTruckHeight] = useState('');
   const [truckWeight, setTruckWeight] = useState('');
   const [directionsResponse, setDirectionsResponse] = useState(null);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
-  const [isTracking, setIsTracking] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const mapRef = useRef(null);
   const watchIdRef = useRef(null);
-  const bottomRef = useRef(null); // Reference to scroll to the bottom of the page
-
-  const addStop = () => setStops([...stops, '']);
-  const removeStop = (index) => setStops(stops.filter((_, i) => i !== index));
-  const handleStopChange = (index, value) => setStops(stops.map((stop, i) => (i === index ? value : stop)));
 
   useEffect(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          setCurrentLocation({ lat: latitude, lng: longitude });
-        },
-        (error) => setError('Failed to get current location. Please enable location services.'),
-        { enableHighAccuracy: true }
-      );
-    } else {
-      setError('Geolocation is not supported by your browser.');
-    }
-  }, []);
-
-  const startTracking = () => {
-    setIsTracking(true);
     if (navigator.geolocation) {
       watchIdRef.current = navigator.geolocation.watchPosition(
         (position) => {
@@ -60,23 +39,39 @@ const RoutePlanner = () => {
           if (mapRef.current) {
             mapRef.current.panTo(location);
           }
+
+          if (directionsResponse && !isOnRoute(location, directionsResponse)) {
+            fetchRoute(); // Recalculate route
+          }
         },
-        (error) => setError('Failed to track location. Please enable location services.'),
+        (error) => {
+          console.error('Error fetching current location:', error.message);
+          setError('Failed to get current location. Please enable location services.');
+        },
         { enableHighAccuracy: true }
       );
+    } else {
+      setError('Geolocation is not supported by your browser.');
     }
 
-    // Scroll to the bottom section
-    if (bottomRef.current) {
-      bottomRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
-  };
+    return () => {
+      if (watchIdRef.current) {
+        navigator.geolocation.clearWatch(watchIdRef.current);
+      }
+    };
+  }, [directionsResponse]);
 
-  const stopTracking = () => {
-    setIsTracking(false);
-    if (watchIdRef.current) {
-      navigator.geolocation.clearWatch(watchIdRef.current);
+  const isOnRoute = (location, directions) => {
+    if (!directions) return true;
+    const steps = directions.routes[0].legs[0].steps;
+    for (let step of steps) {
+      const distance = google.maps.geometry.spherical.computeDistanceBetween(
+        new google.maps.LatLng(location.lat, location.lng),
+        step.end_location
+      );
+      if (distance < 50) return true;
     }
+    return false;
   };
 
   const fetchRoute = () => {
@@ -89,6 +84,9 @@ const RoutePlanner = () => {
         destination: endAddress,
         waypoints: stops.map((stop) => ({ location: stop, stopover: true })),
         travelMode: window.google.maps.TravelMode.DRIVING,
+        drivingOptions: {
+          departureTime: new Date(), // Live traffic
+        },
       },
       (result, status) => {
         setLoading(false);
@@ -96,26 +94,53 @@ const RoutePlanner = () => {
           setDirectionsResponse(result);
           setError('');
         } else {
+          console.error('Error fetching route:', status);
           setError('Failed to fetch route. Please try again.');
         }
       }
     );
   };
 
-  const validateFields = () => {
-    if (!currentLocation || !endAddress || !truckHeight || !truckWeight) {
-      setError('Please provide all required fields.');
-      return false;
+  const showNotification = (message) => {
+    if (Notification.permission === 'granted') {
+      new Notification('Freight Flow', {
+        body: message,
+        icon: '/path/to/icon.png',
+      });
+    } else if (Notification.permission !== 'denied') {
+      Notification.requestPermission().then((permission) => {
+        if (permission === 'granted') {
+          new Notification('Freight Flow', {
+            body: message,
+            icon: '/path/to/icon.png',
+          });
+        }
+      });
     }
-    return true;
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
     setError('');
     setDirectionsResponse(null);
-    if (validateFields()) {
-      fetchRoute();
+    if (!currentLocation || !endAddress) {
+      setError('Please provide all required fields.');
+      return;
+    }
+    fetchRoute();
+  };
+
+  const handleTurnNotifications = () => {
+    if (directionsResponse) {
+      const steps = directionsResponse.routes[0].legs[0].steps;
+      const interval = setInterval(() => {
+        const nextStep = steps[currentStepIndex];
+        if (nextStep) {
+          showNotification(`Upcoming turn: ${nextStep.instructions}`);
+          setCurrentStepIndex(currentStepIndex + 1);
+        }
+      }, 15000); // Notify every 15 seconds
+      return () => clearInterval(interval);
     }
   };
 
@@ -147,50 +172,30 @@ const RoutePlanner = () => {
               <input
                 type="text"
                 value={stop}
-                onChange={(e) => handleStopChange(index, e.target.value)}
+                onChange={(e) => {
+                  const newStops = [...stops];
+                  newStops[index] = e.target.value;
+                  setStops(newStops);
+                }}
                 placeholder={`Enter stop ${index + 1} address`}
                 required
               />
-              <button
-                type="button"
-                className="remove-stop"
-                onClick={() => removeStop(index)}
-              >
+              <button type="button" onClick={() => setStops(stops.filter((_, i) => i !== index))}>
                 ✕
               </button>
             </label>
           </div>
         ))}
-        <button type="button" onClick={addStop}>
+        <button type="button" onClick={() => setStops([...stops, ''])}>
           Add Stop
         </button>
-        <label>
-          Truck Height (ft):
-          <input
-            type="number"
-            value={truckHeight}
-            onChange={(e) => setTruckHeight(e.target.value)}
-            placeholder="Enter truck height"
-            required
-          />
-        </label>
-        <label>
-          Truck Weight (lbs):
-          <input
-            type="number"
-            value={truckWeight}
-            onChange={(e) => setTruckWeight(e.target.value)}
-            placeholder="Enter truck weight"
-            required
-          />
-        </label>
         <button type="submit" disabled={loading}>
           Get Route
         </button>
       </form>
 
       {error && <p style={{ color: 'red' }}>{error}</p>}
-      {loading && <div className="spinner">Loading route...</div>}
+      {loading && <div>Loading route...</div>}
 
       <LoadScript googleMapsApiKey={process.env.REACT_APP_GOOGLE_MAPS_API_KEY}>
         <GoogleMap
@@ -199,59 +204,34 @@ const RoutePlanner = () => {
           zoom={13}
           onLoad={(map) => (mapRef.current = map)}
         >
-          <TrafficLayer />
           {currentLocation && <Marker position={currentLocation} />}
           {directionsResponse && <DirectionsRenderer directions={directionsResponse} />}
         </GoogleMap>
       </LoadScript>
 
-      <div>
-        {isTracking ? (
-          <button onClick={stopTracking} className="stop-tracking">
-            End Trip
-          </button>
-        ) : (
-          <button onClick={startTracking} className="start-tracking">
-            Begin Trip
-          </button>
-        )}
-      </div>
-
       {directionsResponse && (
-        <div>
-          <button onClick={openModal}>View Turn-by-Turn Directions</button>
+        <div className="directions-display">
+          <p>
+            <strong>Current Step:</strong>{' '}
+            {directionsResponse.routes[0].legs[0].steps[currentStepIndex]?.instructions.replace(
+              /<b>/g,
+              ''
+            ).replace(/<\/b>/g, '')}
+          </p>
+          <button onClick={openModal}>View Full Directions</button>
         </div>
       )}
 
-      <div ref={bottomRef}>
-        <Modal
-          isOpen={isModalOpen}
-          onRequestClose={closeModal}
-          className="directions-modal"
-          overlayClassName="modal-overlay"
-          contentLabel="Turn-by-Turn Directions"
-        >
-          <div className="modal-header">
-            <h2>Turn-by-Turn Directions</h2>
-            <button onClick={closeModal} className="close-button">
-              &times;
-            </button>
-          </div>
-          <div className="modal-content">
-  <ul className="directions-list">
-    {directionsResponse &&
-      directionsResponse.routes[0].legs[0].steps.map((step, index) => (
-        <li key={index} className="direction-item">
-          {step.instructions.replace(/<[^>]+>/g, '')}
-        </li>
-      ))}
-  </ul>
-</div>
-          <button onClick={closeModal} className="close-modal-button">
-            Close
-          </button>
-        </Modal>
-      </div>
+      <Modal isOpen={isModalOpen} onRequestClose={closeModal}>
+        <h2>Turn-by-Turn Directions</h2>
+        <ul>
+          {directionsResponse &&
+            directionsResponse.routes[0].legs[0].steps.map((step, index) => (
+              <li key={index}>{step.instructions.replace(/<b>/g, '').replace(/<\/b>/g, '')}</li>
+            ))}
+        </ul>
+        <button onClick={closeModal}>Close</button>
+      </Modal>
     </div>
   );
 };
