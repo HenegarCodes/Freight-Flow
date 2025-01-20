@@ -151,4 +151,57 @@
   .close-modal-button:hover {
     background: #0056b3;
   }
+  .route-planner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    background: linear-gradient(to bottom right, #1e1e2f, #252540);
+    color: #ffffff;
+  }
+  
+  .route-form label {
+    display: block;
+    margin-bottom: 15px;
+    color: #ffffff;
+  }
+  
+  .stop-field {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  
+  .remove-stop {
+    margin-left: 10px;
+    background-color: #ff4d4d;
+    color: #ffffff;
+    border: none;
+    border-radius: 3px;
+    padding: 3px 6px;
+    cursor: pointer;
+  }
+  
+  .spinner {
+    font-size: 16px;
+    color: #ffffff;
+  }
+  
+  .directions-display {
+    background: rgba(0, 0, 0, 0.6);
+    padding: 10px;
+    border-radius: 5px;
+    margin-top: 15px;
+  }
+  
+  .directions-modal {
+    background: #333;
+    color: #fff;
+    padding: 20px;
+    border-radius: 10px;
+  }
+  
+  .directions-list li {
+    margin-bottom: 10px;
+  }
   
