@@ -25,21 +25,15 @@ const RoutePlanner = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [notification, setNotification] = useState('');
   const mapRef = useRef(null);
   const watchIdRef = useRef(null);
-  const recalculationIntervalRef = useRef(null);
 
-  const addStop = () => {
-    setStops([...stops, '']);
-  };
-
+  const addStop = () => setStops([...stops, '']);
   const handleStopChange = (index, value) => {
     const newStops = [...stops];
     newStops[index] = value;
     setStops(newStops);
   };
-
   const removeStop = (index) => {
     const newStops = [...stops];
     newStops.splice(index, 1);
@@ -53,14 +47,11 @@ const RoutePlanner = () => {
           const { latitude, longitude } = position.coords;
           const location = { lat: latitude, lng: longitude };
           setCurrentLocation(location);
-
-          if (mapRef.current) {
-            mapRef.current.panTo(location);
-          }
+          if (mapRef.current) mapRef.current.panTo(location);
         },
-        (error) => {
-          console.error('Error fetching current location:', error.message);
-          setError('Failed to get current location. Please enable location services.');
+        (err) => {
+          console.error('Geolocation error:', err.message);
+          setError('Failed to get current location. Enable location services.');
         },
         { enableHighAccuracy: true }
       );
@@ -69,19 +60,18 @@ const RoutePlanner = () => {
     }
 
     return () => {
-      if (watchIdRef.current) {
-        navigator.geolocation.clearWatch(watchIdRef.current);
-      }
-      if (recalculationIntervalRef.current) {
-        clearInterval(recalculationIntervalRef.current);
-      }
+      if (watchIdRef.current) navigator.geolocation.clearWatch(watchIdRef.current);
     };
   }, []);
 
   const fetchRoute = () => {
+    if (!currentLocation || !endAddress) {
+      setError('Please provide all required fields.');
+      return;
+    }
+
     setLoading(true);
     const directionsService = new window.google.maps.DirectionsService();
-  
     directionsService.route(
       {
         origin: currentLocation,
@@ -89,18 +79,16 @@ const RoutePlanner = () => {
         waypoints: stops.map((stop) => ({ location: stop, stopover: true })),
         travelMode: window.google.maps.TravelMode.DRIVING,
         drivingOptions: {
-          departureTime: new Date(), // Current time
-          trafficModel: 'optimistic', // Testing alternative value
+          departureTime: new Date(), // Required for traffic-based adjustments
+          trafficModel: 'optimistic', // Choose traffic model
         },
       },
       (result, status) => {
         setLoading(false);
         if (status === window.google.maps.DirectionsStatus.OK) {
-          console.log('Route result:', result);
           setDirectionsResponse(result);
-          setError('');
           saveTrip(result);
-          startRecalculation(result); // Ensure recalculation is hooked 
+          setError('');
         } else {
           console.error('Error fetching route:', status);
           setError('Failed to fetch route. Please try again.');
@@ -108,8 +96,6 @@ const RoutePlanner = () => {
       }
     );
   };
-  
-  
 
   const saveTrip = async (route) => {
     const token = localStorage.getItem('token');
@@ -117,13 +103,15 @@ const RoutePlanner = () => {
     const userId = decodedToken.userId;
 
     const optimizedRoute = {
-      distance: route.routes[0].legs[0].distance.text,
-      duration: route.routes[0].legs[0].duration.text,
-      waypoints: route.routes[0].legs[0].steps.map((step) => ({
-        start: step.start_location,
-        end: step.end_location,
-        instructions: step.instructions,
-      })),
+      distance: route.routes[0].legs.reduce((sum, leg) => sum + parseFloat(leg.distance.text), 0).toFixed(2) + ' mi',
+      duration: route.routes[0].legs.reduce((sum, leg) => sum + parseFloat(leg.duration.text), 0).toFixed(2) + ' mins',
+      waypoints: route.routes[0].legs.flatMap((leg) =>
+        leg.steps.map((step) => ({
+          start: step.start_location,
+          end: step.end_location,
+          instructions: step.instructions,
+        }))
+      ),
     };
 
     try {
@@ -138,68 +126,21 @@ const RoutePlanner = () => {
           truckWeight,
           route: optimizedRoute,
         },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
-    } catch (error) {
-      console.error('Error saving trip:', error.message);
+    } catch (err) {
+      console.error('Error saving trip:', err.message);
     }
-  };
-
-  const startRecalculation = (initialRoute) => {
-    recalculationIntervalRef.current = setInterval(() => {
-      const directionsService = new window.google.maps.DirectionsService();
-      directionsService.route(
-        {
-          origin: currentLocation,
-          destination: endAddress,
-          waypoints: stops.map((stop) => ({ location: stop, stopover: true })),
-          travelMode: window.google.maps.TravelMode.DRIVING,
-          drivingOptions: {
-            departureTime: new Date(),
-            trafficModel: 'best_guess',
-          },
-        },
-        (newResult, status) => {
-          if (status === window.google.maps.DirectionsStatus.OK) {
-            const newDuration = newResult.routes[0].legs[0].duration.value;
-            const oldDuration = initialRoute.routes[0].legs[0].duration.value;
-            if (newDuration < oldDuration) {
-              setDirectionsResponse(newResult);
-              setNotification('Route updated to save time!');
-              setTimeout(() => setNotification(''), 5000);
-            }
-          }
-        }
-      );
-    }, 120000); // Recalculate every 2 minutes
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
     setError('');
-    setDirectionsResponse(null);
-    if (!currentLocation) {
-      setError('Current location is unavailable. Please try again.');
-      return;
-    }
-    if (!endAddress) {
-      setError('Please enter a valid destination address.');
-      return;
-    }
     fetchRoute();
   };
 
-  const openModal = () => {
-    setIsModalOpen(true);
-  };
-
-  const closeModal = () => {
-    setIsModalOpen(false);
-  };
+  const openModal = () => setIsModalOpen(true);
+  const closeModal = () => setIsModalOpen(false);
 
   return (
     <div className="route-planner">
@@ -222,14 +163,10 @@ const RoutePlanner = () => {
                 type="text"
                 value={stop}
                 onChange={(e) => handleStopChange(index, e.target.value)}
-                placeholder={`Enter stop ${index + 1} address`}
+                placeholder={`Enter stop ${index + 1}`}
                 required
               />
-              <button
-                type="button"
-                className="remove-stop"
-                onClick={() => removeStop(index)}
-              >
+              <button type="button" className="remove-stop" onClick={() => removeStop(index)}>
                 ✕
               </button>
             </label>
@@ -263,8 +200,7 @@ const RoutePlanner = () => {
         </button>
       </form>
 
-      {notification && <div className="notification">{notification}</div>}
-      {error && <p style={{ color: 'red' }}>{error}</p>}
+      {error && <p className="error">{error}</p>}
       {loading && <div className="spinner">Loading route...</div>}
 
       <LoadScript googleMapsApiKey={process.env.REACT_APP_GOOGLE_MAPS_API_KEY}>
@@ -278,47 +214,6 @@ const RoutePlanner = () => {
           {directionsResponse && <DirectionsRenderer directions={directionsResponse} />}
         </GoogleMap>
       </LoadScript>
-
-      {directionsResponse && (
-        <div className="directions-display">
-          <p>
-            <strong>Current Step:</strong>{' '}
-            {directionsResponse.routes[0].legs[0].steps[currentStepIndex]?.instructions.replace(
-              /<b>/g,
-              ''
-            ).replace(/<\/b>/g, '')}
-          </p>
-          <button onClick={openModal}>View Full Directions</button>
-        </div>
-      )}
-
-      <Modal
-        isOpen={isModalOpen}
-        onRequestClose={closeModal}
-        className="directions-modal"
-        overlayClassName="modal-overlay"
-        contentLabel="Turn-by-Turn Directions"
-      >
-        <div className="modal-header">
-          <h2>Turn-by-Turn Directions</h2>
-          <button onClick={closeModal} className="close-button">
-            &times;
-          </button>
-        </div>
-        <div className="modal-content">
-          <ul className="directions-list">
-            {directionsResponse &&
-              directionsResponse.routes[0].legs[0].steps.map((step, index) => (
-                <li key={index} className="direction-item">
-                  {step.instructions.replace(/<b>/g, '').replace(/<\/b>/g, '')}
-                </li>
-              ))}
-          </ul>
-        </div>
-        <button onClick={closeModal} className="close-modal-button">
-          Close
-        </button>
-      </Modal>
     </div>
   );
 };
