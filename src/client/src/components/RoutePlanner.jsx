@@ -126,8 +126,20 @@ const RoutePlanner = () => {
           truckWeight,
           route: optimizedRoute,
         },
+        
         { headers: { Authorization: `Bearer ${token}` } }
       );
+      console.log("Payload sent to API:", {
+        user: userId,
+        start: currentLocation,
+        end: endAddress,
+        stops,
+        truckHeight,
+        truckWeight,
+        route: optimizedRoute,
+      });
+      console.log("Token being sent:", token);
+      
     } catch (err) {
       console.error('Error saving trip:', err.message);
     }
