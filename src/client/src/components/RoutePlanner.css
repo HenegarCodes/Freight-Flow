@@ -1,207 +1,45 @@
+.route-planner {
+  padding: 20px;
+  font-family: Arial, sans-serif;
+}
+
+.route-form {
+  margin-bottom: 20px;
+}
+
+.route-form label {
+  display: block;
+  margin: 10px 0;
+}
+
+.route-form input {
+  padding: 8px;
+  margin-top: 5px;
+  width: 100%;
+}
+
+.stop-field {
+  display: flex;
+  align-items: center;
+}
+
+.stop-field input {
+  flex: 1;
+}
+
+.remove-stop {
+  background-color: red;
+  color: white;
+  border: none;
+  cursor: pointer;
+  margin-left: 5px;
+}
+
+.error {
+  color: red;
+  font-weight: bold;
+}
+
 .spinner {
-    font-size: 18px;
-    color: #555;
-    text-align: center;
-    margin: 20px 0;
-  }
-  
-  form {
-    margin-bottom: 20px;
-  }
-  
-  label {
-    display: block;
-    margin-bottom: 10px;
-    font-weight: bold;
-  }
-  
-  input {
-    width: 100%;
-    padding: 8px;
-    margin-bottom: 10px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-  }
-  
-  button {
-    background-color: #4caf50;
-    color: white;
-    padding: 10px 20px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-  }
-  
-  button:hover {
-    background-color: #45a049;
-  }
-  
-  .directions-sidebar {
-    max-height: 200px; /* Limit height for scrolling */
-    overflow-y: auto; /* Enable vertical scrolling */
-    padding: 10px;
-    margin-top: 15px;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-    background-color: #f9f9f9;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  }
-  
-  .route-planner {
-    padding: 20px;
-  }
-  
-  .route-form {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-    margin-bottom: 20px;
-  }.navigation-controls {
-    display: block !important;
-    visibility: visible !important;
-  }
-  .google-map-container {
-    width: 100%;
-    height: 400px; /* Reduced height */
-    margin-bottom: 10px; /* Add space below the map */
-  }
-  
-  .navigation-controls {
-    max-height: 200px;
-    overflow-y: auto;
-    margin-top: 10px;
-    border: 1px solid red;
-  }
-  
-  
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
-  .modal-overlay {
-    background: rgba(0, 0, 0, 0.7); /* Dark semi-transparent background */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 1000;
-  }
-  
-  .directions-modal {
-    background: white;
-    padding: 20px;
-    border-radius: 10px;
-    max-width: 600px;
-    width: 90%;
-    max-height: 80%;
-    overflow: hidden; /* Prevent content overflow */
-    display: flex;
-    flex-direction: column; /* Ensures button stays at the bottom */
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-    position: relative; /* Keeps elements positioned properly */
-  }
-  
-  .modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 10px;
-    border-bottom: 1px solid #ddd;
-  }
-  
-  .modal-content {
-    flex: 1; /* Take available space */
-    overflow-y: auto; /* Allow vertical scrolling */
-    padding-right: 10px; /* Add padding for scrollbar */
-  }
-  
-  .close-button {
-    background: transparent;
-    border: none;
-    font-size: 24px;
-    cursor: pointer;
-  }
-  
-  .directions-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-  }
-  
-  .direction-item {
-    margin: 10px 0;
-    padding: 10px;
-    background: #f9f9f9;
-    border-radius: 5px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  }
-  
-  .close-modal-button {
-    margin-top: 20px;
-    padding: 10px 20px;
-    background: #007bff;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    align-self: center; /* Center button at the bottom */
-  }
-  
-  .close-modal-button:hover {
-    background: #0056b3;
-  }
-  .route-planner {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 20px;
-    background: linear-gradient(to bottom right, #1e1e2f, #252540);
-    color: #ffffff;
-  }
-  
-  .route-form label {
-    display: block;
-    margin-bottom: 15px;
-    color: #ffffff;
-  }
-  
-  .stop-field {
-    display: flex;
-    align-items: center;
-    margin-bottom: 10px;
-  }
-  
-  .remove-stop {
-    margin-left: 10px;
-    background-color: #ff4d4d;
-    color: #ffffff;
-    border: none;
-    border-radius: 3px;
-    padding: 3px 6px;
-    cursor: pointer;
-  }
-  
-  .spinner {
-    font-size: 16px;
-    color: #ffffff;
-  }
-  
-  .directions-display {
-    background: rgba(0, 0, 0, 0.6);
-    padding: 10px;
-    border-radius: 5px;
-    margin-top: 15px;
-  }
-  
-  .directions-modal {
-    background: #333;
-    color: #fff;
-    padding: 20px;
-    border-radius: 10px;
-  }
-  
-  .directions-list li {
-    margin-bottom: 10px;
-  }
-  
+  text-align: center;
+}

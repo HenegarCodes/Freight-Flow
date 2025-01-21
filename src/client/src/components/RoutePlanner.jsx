@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { GoogleMap, LoadScript, DirectionsRenderer, Marker } from '@react-google-maps/api';
-import Modal from 'react-modal';
 import axios from 'axios';
 import './RoutePlanner.css';
 
@@ -21,55 +20,54 @@ const RoutePlanner = () => {
   const [truckHeight, setTruckHeight] = useState('');
   const [truckWeight, setTruckWeight] = useState('');
   const [directionsResponse, setDirectionsResponse] = useState(null);
-  const [currentStepIndex, setCurrentStepIndex] = useState(0);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const mapRef = useRef(null);
   const watchIdRef = useRef(null);
 
+  // Add stop to the route
   const addStop = () => setStops([...stops, '']);
+
+  // Handle stop input change
   const handleStopChange = (index, value) => {
-    const newStops = [...stops];
-    newStops[index] = value;
-    setStops(newStops);
-  };
-  const removeStop = (index) => {
-    const newStops = [...stops];
-    newStops.splice(index, 1);
-    setStops(newStops);
+    const updatedStops = [...stops];
+    updatedStops[index] = value;
+    setStops(updatedStops);
   };
 
-  useEffect(() => {
+  // Remove a stop
+  const removeStop = (index) => {
+    const updatedStops = [...stops];
+    updatedStops.splice(index, 1);
+    setStops(updatedStops);
+  };
+
+  // Start live tracking for location updates
+  const startLiveTracking = () => {
     if (navigator.geolocation) {
       watchIdRef.current = navigator.geolocation.watchPosition(
         (position) => {
           const { latitude, longitude } = position.coords;
-          const location = { lat: latitude, lng: longitude };
-          setCurrentLocation(location);
-          if (mapRef.current) mapRef.current.panTo(location);
+          setCurrentLocation({ lat: latitude, lng: longitude });
+          if (mapRef.current) mapRef.current.panTo({ lat: latitude, lng: longitude });
         },
         (err) => {
           console.error('Geolocation error:', err.message);
-          setError('Failed to get current location. Enable location services.');
+          setError('Enable location services for live tracking.');
         },
         { enableHighAccuracy: true }
       );
     } else {
       setError('Geolocation is not supported by your browser.');
     }
+  };
 
-    return () => {
-      if (watchIdRef.current) navigator.geolocation.clearWatch(watchIdRef.current);
-    };
-  }, []);
-
+  // Fetch optimized route
   const fetchRoute = () => {
     if (!currentLocation || !endAddress) {
       setError('Please provide all required fields.');
       return;
     }
-
     setLoading(true);
     const directionsService = new window.google.maps.DirectionsService();
     directionsService.route(
@@ -79,16 +77,15 @@ const RoutePlanner = () => {
         waypoints: stops.map((stop) => ({ location: stop, stopover: true })),
         travelMode: window.google.maps.TravelMode.DRIVING,
         drivingOptions: {
-          departureTime: new Date(), // Required for traffic-based adjustments
-          trafficModel: 'optimistic', // Choose traffic model
+          departureTime: new Date(),
+          trafficModel: 'optimistic',
         },
       },
       (result, status) => {
         setLoading(false);
-        if (status === window.google.maps.DirectionsStatus.OK) {
+        if (status === 'OK') {
           setDirectionsResponse(result);
           saveTrip(result);
-          setError('');
         } else {
           console.error('Error fetching route:', status);
           setError('Failed to fetch route. Please try again.');
@@ -97,6 +94,7 @@ const RoutePlanner = () => {
     );
   };
 
+  // Save trip data
   const saveTrip = async (route) => {
     const token = localStorage.getItem('token');
     const decodedToken = JSON.parse(atob(token.split('.')[1]));
@@ -118,7 +116,7 @@ const RoutePlanner = () => {
       await axios.post(
         '/api/trips',
         {
-          user: userId,
+          userId,
           start: currentLocation,
           end: endAddress,
           stops,
@@ -126,33 +124,19 @@ const RoutePlanner = () => {
           truckWeight,
           route: optimizedRoute,
         },
-        
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      console.log("Payload sent to API:", {
-        user: userId,
-        start: currentLocation,
-        end: endAddress,
-        stops,
-        truckHeight,
-        truckWeight,
-        route: optimizedRoute,
-      });
-      console.log("Token being sent:", token);
-      
     } catch (err) {
       console.error('Error saving trip:', err.message);
     }
   };
 
+  // Submit route form
   const handleSubmit = (e) => {
     e.preventDefault();
     setError('');
     fetchRoute();
   };
-
-  const openModal = () => setIsModalOpen(true);
-  const closeModal = () => setIsModalOpen(false);
 
   return (
     <div className="route-planner">
@@ -211,10 +195,11 @@ const RoutePlanner = () => {
           Start Trip
         </button>
       </form>
-
+      <button onClick={startLiveTracking} disabled={!currentLocation || loading}>
+        Start Live Tracking
+      </button>
       {error && <p className="error">{error}</p>}
       {loading && <div className="spinner">Loading route...</div>}
-
       <LoadScript googleMapsApiKey={process.env.REACT_APP_GOOGLE_MAPS_API_KEY}>
         <GoogleMap
           mapContainerStyle={containerStyle}
