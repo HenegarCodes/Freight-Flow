@@ -90,7 +90,7 @@ const RoutePlanner = () => {
         travelMode: window.google.maps.TravelMode.DRIVING,
         drivingOptions: {
           departureTime: new Date(), // Current time
-          trafficModel: 'best_guess', // Valid traffic model
+          trafficModel: 'optimistic', // Testing alternative value
         },
       },
       (result, status) => {
@@ -100,7 +100,7 @@ const RoutePlanner = () => {
           setDirectionsResponse(result);
           setError('');
           saveTrip(result);
-          startRecalculation(result);
+          startRecalculation(result); // Ensure recalculation is hooked 
         } else {
           console.error('Error fetching route:', status);
           setError('Failed to fetch route. Please try again.');
@@ -108,6 +108,7 @@ const RoutePlanner = () => {
       }
     );
   };
+  
   
 
   const saveTrip = async (route) => {
