@@ -81,7 +81,7 @@ const RoutePlanner = () => {
   const fetchRoute = () => {
     setLoading(true);
     const directionsService = new window.google.maps.DirectionsService();
-
+  
     directionsService.route(
       {
         origin: currentLocation,
@@ -89,13 +89,14 @@ const RoutePlanner = () => {
         waypoints: stops.map((stop) => ({ location: stop, stopover: true })),
         travelMode: window.google.maps.TravelMode.DRIVING,
         drivingOptions: {
-          departureTime: new Date(),
-          trafficModel: 'best_guess',
+          departureTime: new Date(), // Current time
+          trafficModel: 'best_guess', // Valid traffic model
         },
       },
       (result, status) => {
         setLoading(false);
         if (status === window.google.maps.DirectionsStatus.OK) {
+          console.log('Route result:', result);
           setDirectionsResponse(result);
           setError('');
           saveTrip(result);
@@ -107,6 +108,7 @@ const RoutePlanner = () => {
       }
     );
   };
+  
 
   const saveTrip = async (route) => {
     const token = localStorage.getItem('token');
