@@ -80,15 +80,27 @@ const Dashboard = () => {
   const fetchRouteHistory = async () => {
     try {
       const token = localStorage.getItem('token');
+      if (!token) {
+        setError('User not authenticated');
+        return;
+      }
+  
       const response = await axios.get('https://freight-flow.onrender.com/api/trips/history', {
         headers: { Authorization: `Bearer ${token}` },
       });
+  
+      if (response.data.length === 0) {
+        setError('No trip history found.');
+        return;
+      }
+  
       setRouteHistory(response.data);
     } catch (err) {
-      console.error('Error fetching route history:', err);
+      console.error('Error fetching route history:', err.message);
       setError('Failed to fetch route history. Please try again.');
     }
   };
+  
 
   const openHistoryModal = () => {
     fetchRouteHistory();
