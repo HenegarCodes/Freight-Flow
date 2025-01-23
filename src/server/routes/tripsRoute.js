@@ -34,8 +34,6 @@ router.get('/user', verifyToken, async (req, res) => {
 });
 
 
-
-
 router.get('/trips', async (req, res) => {
   try {
       const userId = req.user.userId; // Extract user ID from the token payload
@@ -44,6 +42,24 @@ router.get('/trips', async (req, res) => {
   } catch (error) {
       console.error('Error fetching trips:', error);
       res.status(500).json({ error: 'Server error while fetching trips' });
+  }
+});
+
+router.get('/history', async (req, res) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  try {
+    const decodedToken = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = decodedToken.userId;
+
+    const trips = await Trip.find({ user: userId }).sort({ createdAt: -1 });
+    res.json(trips);
+  } catch (err) {
+    console.error('Error fetching trip history:', err);
+    res.status(500).json({ error: 'Failed to fetch trip history' });
   }
 });
 

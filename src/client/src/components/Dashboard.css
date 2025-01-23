@@ -178,6 +178,52 @@ button:active {
   background: #3a36b1;
   transform: scale(0.95);
 }
+.history-button {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  margin: 20px 0;
+  font-size: 16px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.history-button:hover {
+  background-color: #0056b3;
+}
+
+.history-modal {
+  background: #ffffff;
+  max-width: 600px;
+  margin: auto;
+  padding: 20px;
+  border-radius: 10px;
+  outline: none;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.route-history-list {
+  list-style: none;
+  padding: 0;
+}
+
+.route-item {
+  border: 1px solid #ddd;
+  padding: 15px;
+  margin-bottom: 10px;
+  border-radius: 5px;
+  background: #f9f9f9;
+}
+
+.route-item p {
+  margin: 5px 0;
+}
+
+.modal-overlay {
+  background: rgba(0, 0, 0, 0.5);
+}
+
 
 /* Media Queries */
 @media (max-width: 768px) {

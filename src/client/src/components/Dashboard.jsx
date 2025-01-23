@@ -5,11 +5,11 @@ import './Dashboard.css';
 
 const Dashboard = () => {
   const [recentTrips, setRecentTrips] = useState([]);
+  const [routeHistory, setRouteHistory] = useState([]);
   const [selectedTrip, setSelectedTrip] = useState(null);
   const [averages, setAverages] = useState({ time: 0, mileage: 0 });
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [showFeedbackForm, setShowFeedbackForm] = useState(false);
-  const [feedback, setFeedback] = useState({ rating: '', comments: '' });
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [error, setError] = useState('');
 
@@ -44,11 +44,9 @@ const Dashboard = () => {
 
       try {
         const token = localStorage.getItem('token');
-        console.log('Using token:', token);
         const response = await axios.get('https://freight-flow.onrender.com/api/trips/recent', {
           headers: { Authorization: `Bearer ${token}` },
         });
-        console.log('Fetched trips response:', response.data);
 
         if (response.data && Array.isArray(response.data)) {
           setRecentTrips(response.data);
@@ -77,6 +75,27 @@ const Dashboard = () => {
 
     fetchTrips();
   }, [isLoggedIn]);
+
+  // Fetch route history
+  const fetchRouteHistory = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get('https://freight-flow.onrender.com/api/trips/history', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setRouteHistory(response.data);
+    } catch (err) {
+      console.error('Error fetching route history:', err);
+      setError('Failed to fetch route history. Please try again.');
+    }
+  };
+
+  const openHistoryModal = () => {
+    fetchRouteHistory();
+    setShowHistoryModal(true);
+  };
+
+  const closeHistoryModal = () => setShowHistoryModal(false);
 
   const closeModal = () => setIsModalOpen(false);
 
@@ -111,6 +130,9 @@ const Dashboard = () => {
             </button>
             <button className="tab" onClick={() => setSelectedTrip('averages')}>
               Averages
+            </button>
+            <button className="tab" onClick={openHistoryModal}>
+              View Route History
             </button>
           </div>
 
@@ -163,6 +185,44 @@ const Dashboard = () => {
               (assuming 7 MPG for freight trucks).
             </p>
           </footer>
+
+          {/* Route History Modal */}
+          <Modal
+            isOpen={showHistoryModal}
+            onRequestClose={closeHistoryModal}
+            className="history-modal"
+            overlayClassName="modal-overlay"
+            contentLabel="Route History"
+          >
+            <h2>Route History</h2>
+            {error && <p className="error">{error}</p>}
+            <ul className="route-history-list">
+              {routeHistory.length > 0 ? (
+                routeHistory.map((trip) => (
+                  <li key={trip._id} className="route-item">
+                    <p>
+                      <strong>From:</strong> {trip.start}
+                    </p>
+                    <p>
+                      <strong>To:</strong> {trip.end}
+                    </p>
+                    <p>
+                      <strong>Distance:</strong> {trip.route.distance}
+                    </p>
+                    <p>
+                      <strong>Duration:</strong> {trip.route.duration}
+                    </p>
+                    <p>
+                      <strong>Date:</strong> {new Date(trip.createdAt).toLocaleString()}
+                    </p>
+                  </li>
+                ))
+              ) : (
+                <p>No trips found in your history.</p>
+              )}
+            </ul>
+            <button onClick={closeHistoryModal}>Close</button>
+          </Modal>
         </>
       )}
     </div>
