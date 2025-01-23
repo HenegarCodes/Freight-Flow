@@ -41,17 +41,37 @@ router.get('/route', async (req, res) => {
   }
 });
 router.post('/trips', async (req, res) => {
-  const { start, end, truckHeight, truckWeight, route } = req.body;
-
   try {
-    const trip = new Trip({ start, end, truckHeight, truckWeight, route });
-    await trip.save();
-    res.status(201).json({ message: 'Trip saved successfully', trip });
+    console.log('Request payload:', req.body);
+
+    const { user, start, end, stops, truckHeight, truckWeight, route } = req.body;
+
+    // Check for missing fields
+    if (!user || !start || !end || !route) {
+      console.error('Missing required fields');
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    const newTrip = new Trip({
+      user,
+      start,
+      end,
+      stops,
+      truckHeight,
+      truckWeight,
+      route,
+    });
+
+    const savedTrip = await newTrip.save();
+    console.log('Trip saved:', savedTrip);
+
+    res.status(201).json(savedTrip);
   } catch (error) {
-    console.error('Error saving trip:', error);
-    res.status(500).json({ error: 'Failed to save trip' });
+    console.error('Error saving trip:', error.message);
+    res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
 
 
 module.exports = router;
