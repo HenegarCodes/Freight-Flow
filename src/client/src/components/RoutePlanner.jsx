@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import './RoutePlanner.css';
 
-// HERE Maps SDK Loader
+// Load HERE Maps
 const H = window.H;
 
 const RoutePlanner = () => {
@@ -11,39 +11,9 @@ const RoutePlanner = () => {
   const [stops, setStops] = useState([]);
   const [truckHeight, setTruckHeight] = useState('');
   const [truckWeight, setTruckWeight] = useState('');
-  const [route, setRoute] = useState(null);
-  const [map, setMap] = useState(null);
-  const [platform, setPlatform] = useState(null);
+  const [directions, setDirections] = useState(null);
   const [error, setError] = useState('');
-  const mapContainerRef = useRef(null);
-
-  // Initialize HERE Maps
-  useEffect(() => {
-    const platform = new H.service.Platform({
-      apikey: process.env.REACT_APP_HERE_API_KEY,
-    });
-
-    const defaultLayers = platform.createDefaultLayers();
-    const mapInstance = new H.Map(
-      mapContainerRef.current,
-      defaultLayers.vector.normal.map,
-      {
-        center: { lat: 33.336675, lng: -111.792417 }, // Default center
-        zoom: 13,
-      }
-    );
-
-    const behavior = new H.mapevents.Behavior(new H.mapevents.MapEvents(mapInstance));
-    const ui = H.ui.UI.createDefault(mapInstance, defaultLayers);
-
-    setPlatform(platform);
-    setMap(mapInstance);
-
-    // Cleanup on unmount
-    return () => {
-      mapInstance.dispose();
-    };
-  }, []);
+  const mapRef = useRef(null);
 
   const addStop = () => setStops([...stops, '']);
   const handleStopChange = (index, value) => {
@@ -57,108 +27,82 @@ const RoutePlanner = () => {
     setStops(newStops);
   };
 
-  // Fetch current location
   useEffect(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          setCurrentLocation({ lat: latitude, lng: longitude });
-        },
-        (err) => setError('Failed to fetch current location.')
-      );
-    } else {
-      setError('Geolocation not supported.');
-    }
+    // Initialize HERE Map
+    const platform = new H.service.Platform({
+      apikey: process.env.REACT_APP_HERE_API_KEY, // Use Render environment variable
+    });
+
+    const defaultLayers = platform.createDefaultLayers();
+
+    const map = new H.Map(
+      mapRef.current,
+      defaultLayers.vector.normal.map,
+      {
+        center: { lat: 33.336675, lng: -111.792417 },
+        zoom: 13,
+      }
+    );
+
+    const behavior = new H.mapevents.Behavior(new H.mapevents.MapEvents(map));
+    const ui = H.ui.UI.createDefault(map, defaultLayers);
+
+    map.addEventListener('tap', (evt) => {
+      console.log(evt.type, evt.currentPointer);
+    });
+
+    return () => map.dispose();
   }, []);
 
   const fetchRoute = () => {
-    if (!currentLocation || !endAddress) {
-      setError('Please provide all required fields.');
-      return;
-    }
+    const platform = new H.service.Platform({
+      apikey: process.env.REACT_APP_HERE_API_KEY, // Pull from Render
+    });
 
-    const routingService = platform.getRoutingService();
+    const routingService = platform.getRoutingService(null, 8);
 
-    const routeRequestParams = {
+    const waypoints = [
+      { lat: currentLocation.lat, lng: currentLocation.lng },
+      ...stops.map((stop) => ({ lat: stop.lat, lng: stop.lng })),
+      { lat: endAddress.lat, lng: endAddress.lng },
+    ];
+
+    const truckOptions = {
       mode: 'fastest;truck',
-      waypoint0: `${currentLocation.lat},${currentLocation.lng}`, // Start point
-      waypoint1: endAddress, // Destination
-      // Add intermediate stops if any
-      ...(stops.length && {
-        via: stops.map((stop, index) => `via${index}=${stop}`).join('&'),
-      }),
-      truckHeight,
-      truckWeight,
-      departure: 'now',
+      truck: {
+        height: parseFloat(truckHeight),
+        weight: parseFloat(truckWeight),
+        trailers: 1,
+        limitedWeight: true,
+      },
+      representation: 'overview',
     };
 
     routingService.calculateRoute(
-      routeRequestParams,
+      {
+        mode: truckOptions.mode,
+        waypoint0: `geo!${waypoints[0].lat},${waypoints[0].lng}`,
+        waypoint1: `geo!${waypoints[waypoints.length - 1].lat},${waypoints[waypoints.length - 1].lng}`,
+        truckOptions,
+      },
       (result) => {
-        if (result.response) {
-          const route = result.response.route[0];
-          renderRouteOnMap(route);
-          saveTrip(route);
-        } else {
-          setError('Failed to fetch route.');
+        if (result.response.route) {
+          setDirections(result.response.route[0]);
         }
       },
-      (error) => {
-        console.error('Error fetching route:', error);
-        setError('Error fetching route.');
+      (err) => {
+        console.error('Error fetching route:', err);
+        setError('Failed to fetch route. Please check your input and try again.');
       }
     );
   };
 
-  const renderRouteOnMap = (route) => {
-    const lineString = new H.geo.LineString();
-    route.shape.forEach((point) => {
-      const [lat, lng] = point.split(',');
-      lineString.pushLatLngAlt(lat, lng);
-    });
-
-    const routeLine = new H.map.Polyline(lineString, {
-      style: { lineWidth: 5, strokeColor: 'blue' },
-    });
-
-    map.addObject(routeLine);
-    map.getViewModel().setLookAtData({
-      bounds: routeLine.getBoundingBox(),
-    });
-
-    setRoute(route);
-  };
-
-  const saveTrip = async (route) => {
-    try {
-      const token = localStorage.getItem('token');
-      await axios.post(
-        '/api/trips',
-        {
-          start: currentLocation,
-          end: endAddress,
-          stops,
-          truckHeight,
-          truckWeight,
-          route: {
-            distance: route.summary.distance,
-            duration: route.summary.travelTime,
-          },
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      console.log('Trip saved successfully.');
-    } catch (error) {
-      console.error('Error saving trip:', error.message);
-    }
-  };
-
   const handleSubmit = (e) => {
     e.preventDefault();
-    setError('');
+    if (!currentLocation || !endAddress) {
+      setError('Please provide all required fields.');
+      return;
+    }
     fetchRoute();
   };
 
@@ -185,7 +129,7 @@ const RoutePlanner = () => {
                 onChange={(e) => handleStopChange(index, e.target.value)}
                 placeholder={`Enter stop ${index + 1}`}
               />
-              <button type="button" onClick={() => removeStop(index)}>
+              <button type="button" className="remove-stop" onClick={() => removeStop(index)}>
                 ✕
               </button>
             </label>
@@ -214,11 +158,11 @@ const RoutePlanner = () => {
             required
           />
         </label>
-        <button type="submit">Get Route</button>
+        <button type="submit">Fetch Route</button>
       </form>
 
-      {error && <p className="error">{error}</p>}
-      <div ref={mapContainerRef} className="map-container"></div>
+      <div className="map-container" ref={mapRef} />
+      {error && <p style={{ color: 'red' }}>{error}</p>}
     </div>
   );
 };
