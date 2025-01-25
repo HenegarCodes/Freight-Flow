@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import Modal from 'react-modal';
 import './RoutePlanner.css';
 
 const RoutePlanner = () => {
@@ -8,6 +9,7 @@ const RoutePlanner = () => {
   const [truckHeight, setTruckHeight] = useState('');
   const [truckWeight, setTruckWeight] = useState('');
   const [error, setError] = useState('');
+  const [isLocationPromptOpen, setIsLocationPromptOpen] = useState(false);
   const mapRef = useRef(null);
 
   const addStop = () => setStops([...stops, '']);
@@ -48,6 +50,33 @@ const RoutePlanner = () => {
 
     const behavior = new window.H.mapevents.Behavior(new window.H.mapevents.MapEvents(map));
     const ui = window.H.ui.UI.createDefault(map, defaultLayers);
+
+    // Fetch user's current location
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          setCurrentLocation({ lat: latitude, lng: longitude });
+          map.setCenter({ lat: latitude, lng: longitude });
+          setError('');
+        },
+        (err) => {
+          console.error('Geolocation error:', err.message);
+          if (err.code === 1) {
+            // Permission denied
+            setError('Please enable location services.');
+            setIsLocationPromptOpen(true);
+          } else if (err.code === 2) {
+            setError('Unable to retrieve your location.');
+          } else if (err.code === 3) {
+            setError('Location request timed out.');
+          }
+        },
+        { enableHighAccuracy: true }
+      );
+    } else {
+      setError('Geolocation is not supported by your browser.');
+    }
 
     return () => map.dispose();
   }, []);
@@ -90,11 +119,11 @@ const RoutePlanner = () => {
       }
     );
   };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     setError('');
   
-    // Validate fields
     if (!currentLocation) {
       setError('Current location is unavailable. Please enable location services.');
       return;
@@ -119,11 +148,9 @@ const RoutePlanner = () => {
       setError('Please provide a valid truck weight.');
       return;
     }
-  
-    // If all fields are valid, fetch the route
+
     fetchRoute();
   };
-  
 
   return (
     <div className="route-planner">
@@ -179,6 +206,18 @@ const RoutePlanner = () => {
         </label>
         <button type="submit">Fetch Route</button>
       </form>
+
+      <Modal
+        isOpen={isLocationPromptOpen}
+        onRequestClose={() => setIsLocationPromptOpen(false)}
+        contentLabel="Enable Location Services"
+      >
+        <h2>Enable Location Services</h2>
+        <p>
+          This app requires access to your location to provide accurate routing. Please enable location services in your browser or device settings.
+        </p>
+        <button onClick={() => setIsLocationPromptOpen(false)}>Close</button>
+      </Modal>
 
       <div className="map-container" ref={mapRef} />
       {error && <p style={{ color: 'red' }}>{error}</p>}
