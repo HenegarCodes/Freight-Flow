@@ -90,15 +90,40 @@ const RoutePlanner = () => {
       }
     );
   };
-
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!currentLocation || !endAddress) {
-      setError('Please provide all required fields.');
+    setError('');
+  
+    // Validate fields
+    if (!currentLocation) {
+      setError('Current location is unavailable. Please enable location services.');
       return;
     }
+  
+    if (!endAddress || endAddress.trim() === '') {
+      setError('Please provide a valid destination address.');
+      return;
+    }
+  
+    if (stops.some((stop) => stop.trim() === '')) {
+      setError('Please fill out all stop fields or remove empty stops.');
+      return;
+    }
+  
+    if (!truckHeight || parseFloat(truckHeight) <= 0) {
+      setError('Please provide a valid truck height.');
+      return;
+    }
+  
+    if (!truckWeight || parseFloat(truckWeight) <= 0) {
+      setError('Please provide a valid truck weight.');
+      return;
+    }
+  
+    // If all fields are valid, fetch the route
     fetchRoute();
   };
+  
 
   return (
     <div className="route-planner">
