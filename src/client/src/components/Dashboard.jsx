@@ -201,7 +201,7 @@ const Dashboard = () => {
           </footer>
 
           {/* Route History Modal */}
-          <Modal
+         {/* <Modal
             isOpen={showHistoryModal}
             onRequestClose={closeHistoryModal}
             className="history-modal"
@@ -236,7 +236,7 @@ const Dashboard = () => {
               )}
             </ul>
             <button onClick={closeHistoryModal}>Close</button>
-          </Modal>
+          </Modal> */}
         </>
       )}
     </div>
