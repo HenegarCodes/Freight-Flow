@@ -1,11 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-const H = window.H;
 import './RoutePlanner.css';
-
-const containerStyle = {
-  width: '100%',
-  height: '500px',
-};
 
 const RoutePlanner = () => {
   const [currentLocation, setCurrentLocation] = useState(null);
@@ -15,9 +9,6 @@ const RoutePlanner = () => {
   const [truckWeight, setTruckWeight] = useState('');
   const [error, setError] = useState('');
   const mapRef = useRef(null);
-  const mapInstance = useRef(null); // To store the map instance
-  const platformInstance = useRef(null); // To store the HERE Platform instance
-  const directionsLayer = useRef(null); // To store the routing layer
 
   const addStop = () => setStops([...stops, '']);
   const handleStopChange = (index, value) => {
@@ -31,14 +22,22 @@ const RoutePlanner = () => {
     setStops(newStops);
   };
 
-  // Initialize the HERE Map
   useEffect(() => {
-    platformInstance.current = new H.service.Platform({
+    // Check if HERE Maps script is loaded
+    if (!window.H || !window.H.service) {
+      console.error('HERE Maps script not loaded correctly. Ensure the <script> tags are present in index.html.');
+      setError('HERE Maps script failed to load.');
+      return;
+    }
+
+    // Initialize HERE Maps
+    const platform = new window.H.service.Platform({
       apikey: process.env.REACT_APP_HERE_API_KEY,
     });
 
-    const defaultLayers = platformInstance.current.createDefaultLayers();
-    const map = new H.Map(
+    const defaultLayers = platform.createDefaultLayers();
+
+    const map = new window.H.Map(
       mapRef.current,
       defaultLayers.vector.normal.map,
       {
@@ -47,101 +46,57 @@ const RoutePlanner = () => {
       }
     );
 
-    const behavior = new H.mapevents.Behavior(new H.mapevents.MapEvents(map));
-    const ui = H.ui.UI.createDefault(map, defaultLayers);
+    const behavior = new window.H.mapevents.Behavior(new window.H.mapevents.MapEvents(map));
+    const ui = window.H.ui.UI.createDefault(map, defaultLayers);
 
-    mapInstance.current = map;
-
-    return () => map.dispose(); // Cleanup the map instance on component unmount
+    return () => map.dispose();
   }, []);
 
-  // Fetch the current location using Geolocation API
-  useEffect(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          setCurrentLocation({ lat: latitude, lng: longitude });
-          if (mapInstance.current) {
-            mapInstance.current.setCenter({ lat: latitude, lng: longitude });
-          }
-        },
-        (err) => {
-          console.error('Geolocation error:', err.message);
-          setError('Failed to get current location. Enable location services.');
-        },
-        { enableHighAccuracy: true }
-      );
-    } else {
-      setError('Geolocation is not supported by your browser.');
-    }
-  }, []);
-
-  // Fetch Route
   const fetchRoute = () => {
-    if (!currentLocation || !endAddress) {
-      setError('Please provide all required fields.');
+    if (!window.H || !window.H.service) {
+      setError('HERE Maps service is unavailable.');
       return;
     }
-    setError('');
 
-    const routingService = platformInstance.current.getRoutingService(null, 8);
+    const platform = new window.H.service.Platform({
+      apikey: process.env.REACT_APP_HERE_API_KEY,
+    });
+
+    const routingService = platform.getRoutingService(null, 8);
+
     const waypoints = [
-      `geo!${currentLocation.lat},${currentLocation.lng}`,
+      `geo!${currentLocation?.lat},${currentLocation?.lng}`,
       ...stops.map((stop) => `geo!${stop}`),
       `geo!${endAddress}`,
     ];
 
-    const routingParams = {
-      mode: 'fastest;truck',
-      waypoint0: waypoints[0],
-      waypoint1: waypoints[waypoints.length - 1],
-      representation: 'display',
-      truck: {
-        height: truckHeight,
-        weight: truckWeight,
-        trailers: 1,
-        limitedWeight: true,
+    routingService.calculateRoute(
+      {
+        mode: 'fastest;truck',
+        waypoint0: waypoints[0],
+        waypoint1: waypoints[waypoints.length - 1],
+        representation: 'overview',
+        truck: {
+          height: parseFloat(truckHeight),
+          weight: parseFloat(truckWeight),
+        },
       },
-    };
-
-    routingService.calculateRoute(routingParams, (result) => {
-      if (result.response && result.response.route) {
-        const route = result.response.route[0];
-
-        // Add route to the map
-        if (mapInstance.current) {
-          if (directionsLayer.current) {
-            mapInstance.current.removeObject(directionsLayer.current);
-          }
-
-          const linestring = new H.geo.LineString();
-          route.shape.forEach((point) => {
-            const [lat, lng] = point.split(',');
-            linestring.pushLatLngAlt(parseFloat(lat), parseFloat(lng));
-          });
-
-          const routeLine = new H.map.Polyline(linestring, {
-            style: { strokeColor: 'blue', lineWidth: 5 },
-          });
-
-          directionsLayer.current = routeLine;
-          mapInstance.current.addObject(routeLine);
-
-          // Adjust the map to the route
-          mapInstance.current.getViewModel().setLookAtData({ bounds: routeLine.getBoundingBox() });
-        }
-      } else {
-        setError('No route found. Please check your inputs and try again.');
+      (result) => {
+        console.log('Route result:', result);
+      },
+      (err) => {
+        console.error('Error fetching route:', err);
+        setError('Failed to fetch route. Please try again.');
       }
-    }, (error) => {
-      console.error('Routing error:', error);
-      setError('Failed to fetch route. Please check your input and try again.');
-    });
+    );
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (!currentLocation || !endAddress) {
+      setError('Please provide all required fields.');
+      return;
+    }
     fetchRoute();
   };
 
@@ -200,7 +155,7 @@ const RoutePlanner = () => {
         <button type="submit">Fetch Route</button>
       </form>
 
-      <div className="map-container" ref={mapRef} style={containerStyle} />
+      <div className="map-container" ref={mapRef} />
       {error && <p style={{ color: 'red' }}>{error}</p>}
     </div>
   );
