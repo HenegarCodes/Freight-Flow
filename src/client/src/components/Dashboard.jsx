@@ -100,6 +100,8 @@ const Dashboard = () => {
       setError('Failed to fetch route history. Please try again.');
     }
   };
+
+  
   
 
   const openHistoryModal = () => {
