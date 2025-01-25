@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import H from '@here/maps-api-for-javascript';
+const H = window.H;
 import './RoutePlanner.css';
 
 const containerStyle = {
