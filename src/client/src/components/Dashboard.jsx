@@ -77,7 +77,7 @@ const Dashboard = () => {
   }, [isLoggedIn]);
 
   // Fetch route history
-  const fetchRouteHistory = async () => {
+  /*const fetchRouteHistory = async () => {
     try {
       const token = localStorage.getItem('token');
       if (!token) {
@@ -100,8 +100,8 @@ const Dashboard = () => {
       setError('Failed to fetch route history. Please try again.');
     }
   };
-
   
+
   
 
   const openHistoryModal = () => {
@@ -110,7 +110,7 @@ const Dashboard = () => {
   };
 
   const closeHistoryModal = () => setShowHistoryModal(false);
-
+*/
   const closeModal = () => setIsModalOpen(false);
 
   return (
