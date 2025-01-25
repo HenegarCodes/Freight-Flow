@@ -5,7 +5,7 @@ import './Dashboard.css';
 
 const Dashboard = () => {
   const [recentTrips, setRecentTrips] = useState([]);
-  const [routeHistory, setRouteHistory] = useState([]);
+  //const [routeHistory, setRouteHistory] = useState([]);
   const [selectedTrip, setSelectedTrip] = useState(null);
   const [averages, setAverages] = useState({ time: 0, mileage: 0 });
   const [isModalOpen, setIsModalOpen] = useState(false);
