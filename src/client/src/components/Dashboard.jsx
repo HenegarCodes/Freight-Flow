@@ -9,7 +9,7 @@ const Dashboard = () => {
   const [selectedTrip, setSelectedTrip] = useState(null);
   const [averages, setAverages] = useState({ time: 0, mileage: 0 });
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [showHistoryModal, setShowHistoryModal] = useState(false);
+ // const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [error, setError] = useState('');
 
