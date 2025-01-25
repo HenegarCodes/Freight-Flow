@@ -45,33 +45,9 @@ router.get('/trips', async (req, res) => {
   }
 });
 
-router.get('/history', async (req, res) => {
-  const token = req.headers.authorization?.split(' ')[1];
-  if (!token) {
-    console.error('Authorization token missing');
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-
-  try {
-    const decodedToken = jwt.verify(token, process.env.JWT_SECRET);
-    const userId = decodedToken.userId;
-
-    console.log('User ID from token:', userId); // Debug log to verify decoding
-
-    // Fetch trip history from the database
-    const trips = await Trip.find({ user: userId }).sort({ createdAt: -1 });
-
-    if (!trips || trips.length === 0) {
-      console.log('No trip history found for this user.');
-      return res.status(404).json({ error: 'No trip history found.' });
-    }
-
-    console.log('Fetched trip history:', trips); // Log the fetched trips
-    res.json(trips);
-  } catch (err) {
-    console.error('Error fetching trip history:', err); // Detailed error log
-    res.status(500).json({ error: 'Failed to fetch trip history' });
-  }
+router.get('/history', (req, res) => {
+  res.status(501).json({ message: 'Route history feature is under development.' });
 });
+
 
 module.exports = router;
