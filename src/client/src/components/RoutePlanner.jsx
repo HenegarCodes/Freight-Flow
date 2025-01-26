@@ -77,6 +77,12 @@ const RoutePlanner = () => {
   
     const routingService = platform.getRoutingService(null, 8);
   
+    // Validate current location
+    if (!currentLocation || !currentLocation.lat || !currentLocation.lng) {
+      setError('Current location is unavailable.');
+      return;
+    }
+  
     // Convert truck height to meters
     const heightInMeters = parseFloat(truckHeight) * 0.3048; // Convert feet to meters
   
@@ -92,7 +98,10 @@ const RoutePlanner = () => {
       `geo!${endAddress}`, // Destination
     ];
   
-    // Routing request parameters (only height restriction)
+    // Truck restrictions parameters
+    const truckParams = `height=${heightInMeters}`;
+  
+    // Routing request parameters
     const requestParams = {
       mode: 'fastest;truck',
       ...waypoints.reduce((acc, waypoint, index) => {
@@ -100,9 +109,7 @@ const RoutePlanner = () => {
         return acc;
       }, {}),
       representation: 'overview',
-      truck: {
-        height: heightInMeters, // Only height restriction
-      },
+      truck: truckParams, // Properly formatted truck params
     };
   
     console.log('Routing request params:', requestParams);
@@ -113,6 +120,7 @@ const RoutePlanner = () => {
       (result) => {
         if (result.response && result.response.route) {
           console.log('Route result:', result.response.route);
+          setError('');
         } else {
           console.error('Invalid response format:', result);
           setError('Failed to fetch route.');
@@ -124,6 +132,7 @@ const RoutePlanner = () => {
       }
     );
   };
+  
   
     
   
