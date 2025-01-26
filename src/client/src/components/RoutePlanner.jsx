@@ -105,15 +105,20 @@ const RoutePlanner = () => {
       return;
     }
   
+    // Define waypoints
     const waypoints = [
-      `geo!${currentLocation.lat},${currentLocation.lng}`,
-      ...stops.map((stop) => `geo!${stop}`),
-      `geo!${destinationCoords.lat},${destinationCoords.lng}`,
+      `geo!${currentLocation.lat},${currentLocation.lng}`, // Starting location
+      ...stops.map((stop) => `geo!${stop}`), // Additional stops
+      `geo!${destinationCoords.lat},${destinationCoords.lng}`, // Destination
     ];
   
-    const truckParams = `height=${encodeURIComponent(truckHeight)}&weight=${encodeURIComponent(truckWeight)}`;
+    // Truck-specific options
+    const truckOptions = {
+      height: parseFloat(truckHeight), // Truck height in meters
+      weight: parseFloat(truckWeight), // Truck weight in kilograms
+    };
   
-    console.log('Routing waypoints:', waypoints);
+    console.log('Requesting route with waypoints:', waypoints, 'and truck options:', truckOptions);
   
     // Perform the routing request
     routingService.calculateRoute(
@@ -124,7 +129,7 @@ const RoutePlanner = () => {
           return acc;
         }, {}),
         representation: 'overview',
-        truck: truckParams, // Pass serialized truck parameters
+        truck: truckOptions,
       },
       (result) => {
         console.log('Route result:', result);
@@ -141,7 +146,7 @@ const RoutePlanner = () => {
       }
     );
   };
-  
+    
   
 
   const handleSubmit = (e) => {
