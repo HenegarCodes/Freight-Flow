@@ -77,7 +77,7 @@ const RoutePlanner = () => {
   
     const routingService = platform.getRoutingService(null, 8);
   
-    // Validate and geocode the destination address
+    // Geocode destination address
     const geocoder = platform.getSearchService();
     let destinationCoords;
   
@@ -107,30 +107,28 @@ const RoutePlanner = () => {
   
     // Define waypoints
     const waypoints = [
-      `geo!${currentLocation.lat},${currentLocation.lng}`, // Starting location
+      `geo!${currentLocation.lat},${currentLocation.lng}`, // Current location
       ...stops.map((stop) => `geo!${stop}`), // Additional stops
       `geo!${destinationCoords.lat},${destinationCoords.lng}`, // Destination
     ];
   
-    // Truck-specific options
-    const truckOptions = {
-      height: parseFloat(truckHeight), // Truck height in meters
-      weight: parseFloat(truckWeight), // Truck weight in kilograms
+    // Prepare the routing request
+    const requestParams = {
+      mode: 'fastest;truck',
+      ...waypoints.reduce((acc, waypoint, index) => {
+        acc[`waypoint${index}`] = waypoint;
+        return acc;
+      }, {}),
+      representation: 'overview',
+      'truck[height]': parseFloat(truckHeight), // Truck height in meters
+      'truck[weight]': parseFloat(truckWeight), // Truck weight in kilograms
     };
   
-    console.log('Requesting route with waypoints:', waypoints, 'and truck options:', truckOptions);
+    console.log('Routing request params:', requestParams);
   
     // Perform the routing request
     routingService.calculateRoute(
-      {
-        mode: 'fastest;truck',
-        ...waypoints.reduce((acc, waypoint, index) => {
-          acc[`waypoint${index}`] = waypoint;
-          return acc;
-        }, {}),
-        representation: 'overview',
-        truck: truckOptions,
-      },
+      requestParams,
       (result) => {
         console.log('Route result:', result);
         if (result.response && result.response.route) {
@@ -146,6 +144,7 @@ const RoutePlanner = () => {
       }
     );
   };
+  
     
   
 
