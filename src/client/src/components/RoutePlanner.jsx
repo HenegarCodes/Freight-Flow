@@ -70,14 +70,19 @@ const RoutePlanner = () => {
       setError('HERE Maps service is unavailable.');
       return;
     }
-
+  
     const platform = new window.H.service.Platform({
       apikey: process.env.REACT_APP_HERE_API_KEY,
     });
-
+  
+    const routingService = platform.getRoutingService(null, 8);
+  
+    // Validate and geocode the destination address
+    const geocoder = platform.getSearchService();
+    let destinationCoords;
+  
     try {
-      const geocoder = platform.getSearchService();
-      const destinationCoords = await new Promise((resolve, reject) => {
+      const geocodeResult = await new Promise((resolve, reject) => {
         geocoder.geocode(
           { q: endAddress },
           (result) => {
@@ -92,40 +97,52 @@ const RoutePlanner = () => {
           }
         );
       });
-
-      const routingService = platform.getRoutingService(null, 8);
-      const waypoints = [
-        `geo!${currentLocation.lat},${currentLocation.lng}`,
-        ...stops.map((stop) => `geo!${stop}`),
-        `geo!${destinationCoords.lat},${destinationCoords.lng}`,
-      ];
-
-      routingService.calculateRoute(
-        {
-          mode: 'fastest;truck',
-          ...waypoints.reduce((acc, waypoint, index) => {
-            acc[`waypoint${index}`] = waypoint;
-            return acc;
-          }, {}),
-          representation: 'overview',
-          truck: {
-            height: parseFloat(truckHeight),
-            weight: parseFloat(truckWeight),
-          },
-        },
-        (result) => {
-          console.log('Route result:', result);
-        },
-        (err) => {
-          console.error('Error fetching route:', err);
-          setError('Failed to fetch route. Please try again.');
-        }
-      );
-    } catch (err) {
-      console.error('Error fetching route:', err);
-      setError('Failed to fetch route. Please check your input and try again.');
+  
+      destinationCoords = geocodeResult;
+    } catch (error) {
+      console.error('Geocoding error:', error);
+      setError('Failed to geocode destination. Please check the address.');
+      return;
     }
+  
+    const waypoints = [
+      `geo!${currentLocation.lat},${currentLocation.lng}`,
+      ...stops.map((stop) => `geo!${stop}`),
+      `geo!${destinationCoords.lat},${destinationCoords.lng}`,
+    ];
+  
+    console.log('Routing waypoints:', waypoints);
+  
+    // Perform the routing request
+    routingService.calculateRoute(
+      {
+        mode: 'fastest;truck',
+        ...waypoints.reduce((acc, waypoint, index) => {
+          acc[`waypoint${index}`] = waypoint;
+          return acc;
+        }, {}),
+        representation: 'overview',
+        truck: {
+          height: parseFloat(truckHeight),
+          weight: parseFloat(truckWeight),
+        },
+      },
+      (result) => {
+        console.log('Route result:', result);
+        if (result.response && result.response.route) {
+          console.log('Successfully fetched route:', result.response.route);
+        } else {
+          console.error('Invalid response format:', result);
+          setError('Failed to fetch route.');
+        }
+      },
+      (err) => {
+        console.error('Error fetching route:', err);
+        setError('Failed to fetch route. Please try again.');
+      }
+    );
   };
+  
 
   const handleSubmit = (e) => {
     e.preventDefault();
