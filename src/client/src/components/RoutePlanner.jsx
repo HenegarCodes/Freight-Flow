@@ -111,6 +111,8 @@ const RoutePlanner = () => {
       `geo!${destinationCoords.lat},${destinationCoords.lng}`,
     ];
   
+    const truckParams = `height=${encodeURIComponent(truckHeight)}&weight=${encodeURIComponent(truckWeight)}`;
+  
     console.log('Routing waypoints:', waypoints);
   
     // Perform the routing request
@@ -122,10 +124,7 @@ const RoutePlanner = () => {
           return acc;
         }, {}),
         representation: 'overview',
-        truck: {
-          height: parseFloat(truckHeight),
-          weight: parseFloat(truckWeight),
-        },
+        truck: truckParams, // Pass serialized truck parameters
       },
       (result) => {
         console.log('Route result:', result);
@@ -142,6 +141,7 @@ const RoutePlanner = () => {
       }
     );
   };
+  
   
 
   const handleSubmit = (e) => {
