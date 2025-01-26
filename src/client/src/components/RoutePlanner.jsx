@@ -77,42 +77,22 @@ const RoutePlanner = () => {
   
     const routingService = platform.getRoutingService(null, 8);
   
-    // Geocode destination address
-    const geocoder = platform.getSearchService();
-    let destinationCoords;
+    // Convert truck height to meters
+    const heightInMeters = parseFloat(truckHeight) * 0.3048; // Convert feet to meters
   
-    try {
-      const geocodeResult = await new Promise((resolve, reject) => {
-        geocoder.geocode(
-          { q: endAddress },
-          (result) => {
-            if (result.items && result.items.length > 0) {
-              resolve(result.items[0].position);
-            } else {
-              reject(new Error('Invalid destination address.'));
-            }
-          },
-          (error) => {
-            reject(error);
-          }
-        );
-      });
-  
-      destinationCoords = geocodeResult;
-    } catch (error) {
-      console.error('Geocoding error:', error);
-      setError('Failed to geocode destination. Please check the address.');
+    if (!heightInMeters || heightInMeters <= 0) {
+      setError('Invalid truck height. Ensure a valid height is provided.');
       return;
     }
   
     // Define waypoints
     const waypoints = [
-      `geo!${currentLocation.lat},${currentLocation.lng}`, // Current location
-      ...stops.map((stop) => `geo!${stop}`), // Additional stops
-      `geo!${destinationCoords.lat},${destinationCoords.lng}`, // Destination
+      `geo!${currentLocation.lat},${currentLocation.lng}`, // Starting point
+      ...stops.map((stop) => `geo!${stop}`), // Intermediate stops
+      `geo!${endAddress}`, // Destination
     ];
   
-    // Prepare the routing request
+    // Routing request parameters (only height restriction)
     const requestParams = {
       mode: 'fastest;truck',
       ...waypoints.reduce((acc, waypoint, index) => {
@@ -120,8 +100,9 @@ const RoutePlanner = () => {
         return acc;
       }, {}),
       representation: 'overview',
-      'truck[height]': parseFloat(truckHeight), // Truck height in meters
-      'truck[weight]': parseFloat(truckWeight), // Truck weight in kilograms
+      truck: {
+        height: heightInMeters, // Only height restriction
+      },
     };
   
     console.log('Routing request params:', requestParams);
@@ -130,9 +111,8 @@ const RoutePlanner = () => {
     routingService.calculateRoute(
       requestParams,
       (result) => {
-        console.log('Route result:', result);
         if (result.response && result.response.route) {
-          console.log('Successfully fetched route:', result.response.route);
+          console.log('Route result:', result.response.route);
         } else {
           console.error('Invalid response format:', result);
           setError('Failed to fetch route.');
@@ -140,7 +120,7 @@ const RoutePlanner = () => {
       },
       (err) => {
         console.error('Error fetching route:', err);
-        setError('Failed to fetch route. Please try again.');
+        setError('Failed to fetch route. Please check your inputs and try again.');
       }
     );
   };
@@ -151,35 +131,32 @@ const RoutePlanner = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     setError('');
-
+  
+    // Validate fields
     if (!currentLocation) {
       setError('Current location is unavailable. Please enable location services.');
       return;
     }
-
-    if (!endAddress.trim()) {
+  
+    if (!endAddress || endAddress.trim() === '') {
       setError('Please provide a valid destination address.');
       return;
     }
-
-    if (stops.some((stop) => !stop.trim())) {
+  
+    if (stops.some((stop) => stop.trim() === '')) {
       setError('Please fill out all stop fields or remove empty stops.');
       return;
     }
-
+  
     if (!truckHeight || parseFloat(truckHeight) <= 0) {
       setError('Please provide a valid truck height.');
       return;
     }
-
-    if (!truckWeight || parseFloat(truckWeight) <= 0) {
-      setError('Please provide a valid truck weight.');
-      return;
-    }
-
+  
+    // Fetch the route
     fetchRoute();
   };
-
+  
   return (
     <div className="route-planner">
       <form onSubmit={handleSubmit} className="route-form">
@@ -219,16 +196,6 @@ const RoutePlanner = () => {
             value={truckHeight}
             onChange={(e) => setTruckHeight(e.target.value)}
             placeholder="Enter truck height"
-            required
-          />
-        </label>
-        <label>
-          Truck Weight (lbs):
-          <input
-            type="number"
-            value={truckWeight}
-            onChange={(e) => setTruckWeight(e.target.value)}
-            placeholder="Enter truck weight"
             required
           />
         </label>
