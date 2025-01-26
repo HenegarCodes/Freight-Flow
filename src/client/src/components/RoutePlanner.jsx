@@ -65,6 +65,68 @@ const RoutePlanner = () => {
     return () => map.dispose();
   }, []);
 
+  const fetchRoute = async () => {
+    if (!window.H || !window.H.service) {
+      setError('HERE Maps service is unavailable.');
+      return;
+    }
+
+    const platform = new window.H.service.Platform({
+      apikey: process.env.REACT_APP_HERE_API_KEY,
+    });
+
+    try {
+      const geocoder = platform.getSearchService();
+      const destinationCoords = await new Promise((resolve, reject) => {
+        geocoder.geocode(
+          { q: endAddress },
+          (result) => {
+            if (result.items && result.items.length > 0) {
+              resolve(result.items[0].position);
+            } else {
+              reject(new Error('Invalid destination address.'));
+            }
+          },
+          (error) => {
+            reject(error);
+          }
+        );
+      });
+
+      const routingService = platform.getRoutingService(null, 8);
+      const waypoints = [
+        `geo!${currentLocation.lat},${currentLocation.lng}`,
+        ...stops.map((stop) => `geo!${stop}`),
+        `geo!${destinationCoords.lat},${destinationCoords.lng}`,
+      ];
+
+      routingService.calculateRoute(
+        {
+          mode: 'fastest;truck',
+          ...waypoints.reduce((acc, waypoint, index) => {
+            acc[`waypoint${index}`] = waypoint;
+            return acc;
+          }, {}),
+          representation: 'overview',
+          truck: {
+            height: parseFloat(truckHeight),
+            weight: parseFloat(truckWeight),
+          },
+        },
+        (result) => {
+          console.log('Route result:', result);
+        },
+        (err) => {
+          console.error('Error fetching route:', err);
+          setError('Failed to fetch route. Please try again.');
+        }
+      );
+    } catch (err) {
+      console.error('Error fetching route:', err);
+      setError('Failed to fetch route. Please check your input and try again.');
+    }
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     setError('');
