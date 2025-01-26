@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import Modal from 'react-modal';
 import './RoutePlanner.css';
 
 const RoutePlanner = () => {
@@ -9,7 +8,6 @@ const RoutePlanner = () => {
   const [truckHeight, setTruckHeight] = useState('');
   const [truckWeight, setTruckWeight] = useState('');
   const [error, setError] = useState('');
-  const [isLocationPromptOpen, setIsLocationPromptOpen] = useState(false);
   const mapRef = useRef(null);
 
   const addStop = () => setStops([...stops, '']);
@@ -25,14 +23,12 @@ const RoutePlanner = () => {
   };
 
   useEffect(() => {
-    // Check if HERE Maps script is loaded
     if (!window.H || !window.H.service) {
       console.error('HERE Maps script not loaded correctly. Ensure the <script> tags are present in index.html.');
       setError('HERE Maps script failed to load.');
       return;
     }
 
-    // Initialize HERE Maps
     const platform = new window.H.service.Platform({
       apikey: process.env.REACT_APP_HERE_API_KEY,
     });
@@ -51,7 +47,6 @@ const RoutePlanner = () => {
     const behavior = new window.H.mapevents.Behavior(new window.H.mapevents.MapEvents(map));
     const ui = window.H.ui.UI.createDefault(map, defaultLayers);
 
-    // Fetch user's current location
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -63,9 +58,7 @@ const RoutePlanner = () => {
         (err) => {
           console.error('Geolocation error:', err.message);
           if (err.code === 1) {
-            // Permission denied
             setError('Please enable location services.');
-            setIsLocationPromptOpen(true);
           } else if (err.code === 2) {
             setError('Unable to retrieve your location.');
           } else if (err.code === 3) {
@@ -103,15 +96,27 @@ const RoutePlanner = () => {
       {
         mode: 'fastest;truck',
         waypoint0: waypoints[0],
-        waypoint1: waypoints[waypoints.length - 1],
+        ...waypoints.slice(1, -1).reduce(
+          (acc, waypoint, index) => ({
+            ...acc,
+            [`waypoint${index + 1}`]: waypoint,
+          }),
+          {}
+        ),
+        waypointN: waypoints[waypoints.length - 1],
         representation: 'overview',
-        truck: {
+        truck: JSON.stringify({
           height: parseFloat(truckHeight),
           weight: parseFloat(truckWeight),
-        },
+        }),
       },
       (result) => {
-        console.log('Route result:', result);
+        if (result.response && result.response.route) {
+          console.log('Route result:', result.response.route);
+        } else {
+          console.error('No route found in response:', result);
+          setError('No route found. Please check your inputs.');
+        }
       },
       (err) => {
         console.error('Error fetching route:', err);
@@ -206,18 +211,6 @@ const RoutePlanner = () => {
         </label>
         <button type="submit">Fetch Route</button>
       </form>
-
-      <Modal
-        isOpen={isLocationPromptOpen}
-        onRequestClose={() => setIsLocationPromptOpen(false)}
-        contentLabel="Enable Location Services"
-      >
-        <h2>Enable Location Services</h2>
-        <p>
-          This app requires access to your location to provide accurate routing. Please enable location services in your browser or device settings.
-        </p>
-        <button onClick={() => setIsLocationPromptOpen(false)}>Close</button>
-      </Modal>
 
       <div className="map-container" ref={mapRef} />
       {error && <p style={{ color: 'red' }}>{error}</p>}
