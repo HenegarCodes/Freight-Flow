@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { GoogleMap, LoadScript, DirectionsRenderer, Marker } from '@react-google-maps/api';
-import Modal from 'react-modal';
-import axios from 'axios';
 import './RoutePlanner.css';
 
 const containerStyle = {
@@ -14,19 +12,18 @@ const center = {
   lng: -111.792417,
 };
 
+const proximityThreshold = 0.1; // Proximity in kilometers (100 meters)
+
 const RoutePlanner = () => {
   const [currentLocation, setCurrentLocation] = useState(null);
   const [endAddress, setEndAddress] = useState('');
+  const [destinationCoords, setDestinationCoords] = useState(null);
   const [stops, setStops] = useState([]);
-  const [truckHeight, setTruckHeight] = useState('');
-  const [truckWeight, setTruckWeight] = useState('');
   const [directionsResponse, setDirectionsResponse] = useState(null);
-  const [currentStepIndex, setCurrentStepIndex] = useState(0);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [hasArrived, setHasArrived] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const mapRef = useRef(null);
-  const watchIdRef = useRef(null);
 
   const addStop = () => setStops([...stops, '']);
   const handleStopChange = (index, value) => {
@@ -42,107 +39,107 @@ const RoutePlanner = () => {
 
   useEffect(() => {
     if (navigator.geolocation) {
-      watchIdRef.current = navigator.geolocation.watchPosition(
+      navigator.geolocation.watchPosition(
         (position) => {
           const { latitude, longitude } = position.coords;
-          const location = { lat: latitude, lng: longitude };
-          setCurrentLocation(location);
-          if (mapRef.current) mapRef.current.panTo(location);
+          setCurrentLocation({ lat: latitude, lng: longitude });
         },
         (err) => {
-          console.error('Geolocation error:', err.message);
-          setError('Failed to get current location. Enable location services.');
+          console.error('Error fetching location:', err.message);
+          setError('Failed to fetch location. Please enable location services in your browser.');
         },
         { enableHighAccuracy: true }
       );
     } else {
       setError('Geolocation is not supported by your browser.');
     }
-
-    return () => {
-      if (watchIdRef.current) navigator.geolocation.clearWatch(watchIdRef.current);
-    };
   }, []);
 
-  const fetchRoute = () => {
-    if (!currentLocation || !endAddress) {
-      setError('Please provide all required fields.');
-      return;
+  useEffect(() => {
+    if (currentLocation && destinationCoords) {
+      const distance = calculateDistance(
+        currentLocation.lat,
+        currentLocation.lng,
+        destinationCoords.lat,
+        destinationCoords.lng
+      );
+      if (distance <= proximityThreshold) {
+        setHasArrived(true);
+      }
     }
+  }, [currentLocation, destinationCoords]);
 
+  const fetchRoute = () => {
     setLoading(true);
     const directionsService = new window.google.maps.DirectionsService();
+
     directionsService.route(
       {
         origin: currentLocation,
         destination: endAddress,
         waypoints: stops.map((stop) => ({ location: stop, stopover: true })),
         travelMode: window.google.maps.TravelMode.DRIVING,
-        drivingOptions: {
-          departureTime: new Date(), // Required for traffic-based adjustments
-          trafficModel: 'optimistic', // Choose traffic model
-        },
       },
       (result, status) => {
         setLoading(false);
         if (status === window.google.maps.DirectionsStatus.OK) {
           setDirectionsResponse(result);
-          saveTrip(result);
           setError('');
+
+          // Get destination coordinates
+          const destination = result.routes[0].legs[0].end_location;
+          setDestinationCoords({
+            lat: destination.lat(),
+            lng: destination.lng(),
+          });
         } else {
           console.error('Error fetching route:', status);
-          setError('Failed to fetch route. Please try again.');
+          setError('Failed to fetch route. Please check your input and try again.');
         }
       }
     );
   };
 
-  const saveTrip = async (route) => {
-    const token = localStorage.getItem('token');
-    const decodedToken = JSON.parse(atob(token.split('.')[1]));
-    const userId = decodedToken.userId;
-
-    const optimizedRoute = {
-      distance: route.routes[0].legs.reduce((sum, leg) => sum + parseFloat(leg.distance.text), 0).toFixed(2) + ' mi',
-      duration: route.routes[0].legs.reduce((sum, leg) => sum + parseFloat(leg.duration.text), 0).toFixed(2) + ' mins',
-      waypoints: route.routes[0].legs.flatMap((leg) =>
-        leg.steps.map((step) => ({
-          start: step.start_location,
-          end: step.end_location,
-          instructions: step.instructions,
-        }))
-      ),
-    };
-
-    try {
-      await axios.post(
-        '/api/trips',
-        {
-          user: userId,
-          start: currentLocation,
-          end: endAddress,
-          stops,
-          truckHeight,
-          truckWeight,
-          route: optimizedRoute,
-        },
-        
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      
-    } catch (err) {
-      console.error('Error saving trip:', err.message);
-    }
+  const calculateDistance = (lat1, lng1, lat2, lng2) => {
+    const R = 6371; // Radius of the Earth in km
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLng = ((lng2 - lng1) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) *
+        Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c; // Distance in km
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
     setError('');
+
+    if (!currentLocation) {
+      setError('Current location is unavailable. Please enable location services.');
+      return;
+    }
+
+    if (!endAddress || endAddress.trim() === '') {
+      setError('Please provide a valid destination address.');
+      return;
+    }
+
+    if (stops.some((stop) => stop.trim() === '')) {
+      setError('Please fill out all stop fields or remove empty stops.');
+      return;
+    }
+
     fetchRoute();
   };
 
-  const openModal = () => setIsModalOpen(true);
-  const closeModal = () => setIsModalOpen(false);
+  const handleEndTrip = () => {
+    alert('Trip ended. Thank you for using the app!');
+    setDirectionsResponse(null);
+    setDestinationCoords(null);
+    setHasArrived(false);
+  };
 
   return (
     <div className="route-planner">
@@ -166,7 +163,6 @@ const RoutePlanner = () => {
                 value={stop}
                 onChange={(e) => handleStopChange(index, e.target.value)}
                 placeholder={`Enter stop ${index + 1}`}
-                required
               />
               <button type="button" className="remove-stop" onClick={() => removeStop(index)}>
                 ✕
@@ -177,32 +173,12 @@ const RoutePlanner = () => {
         <button type="button" onClick={addStop}>
           Add Stop
         </button>
-        <label>
-          Truck Height (ft):
-          <input
-            type="number"
-            value={truckHeight}
-            onChange={(e) => setTruckHeight(e.target.value)}
-            placeholder="Enter truck height"
-            required
-          />
-        </label>
-        <label>
-          Truck Weight (lbs):
-          <input
-            type="number"
-            value={truckWeight}
-            onChange={(e) => setTruckWeight(e.target.value)}
-            placeholder="Enter truck weight"
-            required
-          />
-        </label>
         <button type="submit" disabled={!currentLocation || loading}>
-          Start Trip
+          Fetch Route
         </button>
       </form>
 
-      {error && <p className="error">{error}</p>}
+      {error && <p style={{ color: 'red' }}>{error}</p>}
       {loading && <div className="spinner">Loading route...</div>}
 
       <LoadScript googleMapsApiKey={process.env.REACT_APP_GOOGLE_MAPS_API_KEY}>
@@ -216,6 +192,14 @@ const RoutePlanner = () => {
           {directionsResponse && <DirectionsRenderer directions={directionsResponse} />}
         </GoogleMap>
       </LoadScript>
+
+      {directionsResponse && !hasArrived && (
+        <button className="end-trip-button" onClick={handleEndTrip}>
+          End Trip
+        </button>
+      )}
+
+      {hasArrived && <p style={{ color: 'green' }}>You have arrived at your destination!</p>}
     </div>
   );
 };
