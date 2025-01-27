@@ -49,31 +49,30 @@ const RoutePlanner = () => {
     }
   };
 
-  const fetchORSRoute = async (destinationCoords) => {
+  const fetchORSRoute = async () => {
     try {
-      console.log('Current Location:', currentLocation);
-      console.log('Destination Coordinates:', destinationCoords);
-  
       const response = await fetch(
-        `/api/route?start=${currentLocation.lng},${currentLocation.lat}&end=${destinationCoords[0]},${destinationCoords[1]}&height=${truckHeight}&weight=${truckWeight}`
+        `https://api.openrouteservice.org/v2/directions/driving-hgv?api_key=5b3ce3597851110001cf62486b2de50d91c74f5a8a6483198b519885&start=${currentLocation.lng},${currentLocation.lat}&end=${destinationCoordinates[0]},${destinationCoordinates[1]}&maximum_height=${truckHeight}&maximum_weight=${truckWeight}`
       );
   
-      console.log('ORS API Request:', response.url);
-  
       if (!response.ok) {
-        throw new Error('Failed to fetch route from backend');
+        throw new Error('Failed to fetch route from OpenRouteService');
       }
   
       const data = await response.json();
-      console.log('ORS API Response:', data);
+      const decodedCoordinates = polyline.decode(data.routes[0].geometry).map(([lat, lng]) => ({
+        lat,
+        lng,
+      }));
   
-      const coordinates = data.routes[0].geometry.coordinates.map(([lng, lat]) => ({ lat, lng }));
-      setRouteCoordinates(coordinates);
+      setRouteCoordinates(decodedCoordinates); // Update state to draw the route
     } catch (err) {
-      console.error('Route fetching error:', err);
-      setError('Failed to fetch the route. Please try again.');
+      console.error('Route fetching error:', err.message);
+      setError('Failed to fetch route. Please try again.');
     }
   };
+  
+  
   
   
   useEffect(() => {
