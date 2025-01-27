@@ -15,66 +15,61 @@ const center = {
 const RoutePlanner = () => {
   const [currentLocation, setCurrentLocation] = useState(null);
   const [endAddress, setEndAddress] = useState('');
-  const [destinationCoords, setDestinationCoords] = useState(null);
+  const [destinationCoordinates, setDestinationCoordinates] = useState(null);
   const [routeCoordinates, setRouteCoordinates] = useState([]);
   const [truckHeight, setTruckHeight] = useState('');
   const [truckWeight, setTruckWeight] = useState('');
   const [error, setError] = useState('');
   const mapRef = useRef(null);
 
-  const fetchEnvVariables = async () => {
-    const response = await fetch('/api/env');
-    const data = await response.json();
-    return data;
-  };
-
-  const fetchCoordinates = async (address, apiKey) => {
+  // Fetch destination coordinates from address
+  const getCoordinatesFromAddress = async (address) => {
     try {
+      const ORS_API_KEY = 'your-api-key-here';
       const response = await fetch(
-        `https://api.openrouteservice.org/geocode/search?api_key=${apiKey}&text=${encodeURIComponent(address)}`
+        `https://api.openrouteservice.org/geocode/search?api_key=${ORS_API_KEY}&text=${encodeURIComponent(address)}`
       );
 
-      if (!response.ok) throw new Error('Failed to fetch coordinates');
-      const data = await response.json();
-
-      if (data.features.length === 0) {
-        throw new Error('No coordinates found for this address');
+      if (!response.ok) {
+        throw new Error('Failed to fetch destination coordinates');
       }
 
-      return data.features[0].geometry.coordinates;
+      const data = await response.json();
+      const coordinates = data.features[0].geometry.coordinates;
+      return [coordinates[0], coordinates[1]]; // lng, lat
     } catch (err) {
-      console.error('Geocoding error:', err);
-      setError('Failed to geocode the destination address. Please check and try again.');
+      console.error('Geocoding error:', err.message);
+      setError('Failed to fetch destination coordinates.');
       return null;
     }
   };
 
+  // Fetch route from OpenRouteService
   const fetchORSRoute = async () => {
     try {
+      if (!destinationCoordinates || !currentLocation) {
+        throw new Error('Current location or destination coordinates are missing.');
+      }
+
+      const ORS_API_KEY = 'your-api-key-here';
       const response = await fetch(
-        `https://api.openrouteservice.org/v2/directions/driving-hgv?api_key=5b3ce3597851110001cf62486b2de50d91c74f5a8a6483198b519885&start=${currentLocation.lng},${currentLocation.lat}&end=${destinationCoordinates[0]},${destinationCoordinates[1]}&maximum_height=${truckHeight}&maximum_weight=${truckWeight}`
+        `https://api.openrouteservice.org/v2/directions/driving-hgv?api_key=${ORS_API_KEY}&start=${currentLocation.lng},${currentLocation.lat}&end=${destinationCoordinates[0]},${destinationCoordinates[1]}&maximum_height=${truckHeight}&maximum_weight=${truckWeight}`
       );
-  
+
       if (!response.ok) {
         throw new Error('Failed to fetch route from OpenRouteService');
       }
-  
+
       const data = await response.json();
-      const decodedCoordinates = polyline.decode(data.routes[0].geometry).map(([lat, lng]) => ({
-        lat,
-        lng,
-      }));
-  
-      setRouteCoordinates(decodedCoordinates); // Update state to draw the route
+      const coordinates = data.routes[0].geometry.coordinates.map(([lng, lat]) => ({ lat, lng }));
+      setRouteCoordinates(coordinates);
     } catch (err) {
       console.error('Route fetching error:', err.message);
       setError('Failed to fetch route. Please try again.');
     }
   };
-  
-  
-  
-  
+
+  // Request current location
   useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -93,46 +88,42 @@ const RoutePlanner = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-  
+
     // Validate fields
     if (!currentLocation) {
       setError('Current location is unavailable. Please enable location services.');
       return;
     }
-  
+
     if (!endAddress || endAddress.trim() === '') {
       setError('Please provide a valid destination address.');
       return;
     }
-  
+
     if (!truckHeight || parseFloat(truckHeight) <= 0) {
       setError('Please provide a valid truck height.');
       return;
     }
-  
+
     if (!truckWeight || parseFloat(truckWeight) <= 0) {
       setError('Please provide a valid truck weight.');
       return;
     }
-  
-    // Fetch destination coordinates
-    const { ORS_API_KEY } = await fetchEnvVariables();
-    const coords = await fetchCoordinates(endAddress, ORS_API_KEY);
-  
-    console.log('Destination Coordinates:', coords);
-  
-    if (!coords) {
-      setError('Failed to fetch destination coordinates. Please check the address and try again.');
-      return;
+
+    try {
+      // Fetch destination coordinates
+      const coordinates = await getCoordinatesFromAddress(endAddress);
+      if (!coordinates) {
+        throw new Error('Failed to fetch destination coordinates');
+      }
+
+      setDestinationCoordinates(coordinates);
+      await fetchORSRoute(); // Fetch route after coordinates are set
+    } catch (err) {
+      console.error('Error during route planning:', err.message);
+      setError(err.message || 'An unexpected error occurred.');
     }
-  
-    setDestinationCoords(coords); // Set state with valid coordinates
-    console.log('Destination Coordinates Set:', coords);
-  
-    // Fetch the route
-    await fetchORSRoute(coords); // Pass the coordinates to the route function
   };
-  
 
   return (
     <div className="route-planner">
@@ -173,7 +164,7 @@ const RoutePlanner = () => {
       {error && <p style={{ color: 'red' }}>{error}</p>}
 
       <LoadScript
-        googleMapsApiKey={process.env.REACT_APP_GOOGLE_MAPS_API_KEY}
+        googleMapsApiKey={process.env.REACT_APP_GOOGLE_MAPS_API_KEY} // Pulling Google Maps API key from .env
       >
         <GoogleMap
           mapContainerStyle={containerStyle}

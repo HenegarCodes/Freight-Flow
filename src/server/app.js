@@ -19,7 +19,7 @@ app.use(express.json());
 // Register routes
 app.use('/api/auth', authRoutes);
 app.use('/api/trips', tripsRoute); 
-app.use('/api', orsRoute);
+app.use('/api/ors', orsRoute);
 app.use('/api', geocodeRoute);
 
 const typeDefs = gql`
