@@ -74,6 +74,13 @@ const RoutePlanner = () => {
     }
   };
 
+  // Trigger route fetching when destinationCoordinates is updated
+  useEffect(() => {
+    if (destinationCoordinates) {
+      fetchORSRoute();
+    }
+  }, [destinationCoordinates]);
+
   // Request current location
   useEffect(() => {
     if (navigator.geolocation) {
@@ -135,12 +142,7 @@ const RoutePlanner = () => {
         throw new Error('Failed to fetch destination coordinates');
       }
 
-      setDestinationCoordinates(coordinates);
-
-      // Fetch the route after setting destinationCoordinates
-      setTimeout(async () => {
-        await fetchORSRoute();
-      }, 100); // Delay to ensure destinationCoordinates is updated
+      setDestinationCoordinates(coordinates); // This will trigger the `useEffect` to fetch the route
     } catch (err) {
       console.error('Error during route planning:', err.message);
       setError(err.message || 'An unexpected error occurred.');
