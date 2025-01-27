@@ -93,35 +93,52 @@ const RoutePlanner = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-
+  
+    // Debug current location
+    console.log('Current Location:', currentLocation);
     if (!currentLocation) {
-      setError('Current location is unavailable. Please enable location services.');
+      setError('Your current location is unavailable. Please enable location services.');
       return;
     }
-
+  
+    // Debug destination address
+    console.log('Destination Address:', endAddress);
     if (!endAddress || endAddress.trim() === '') {
       setError('Please provide a valid destination address.');
       return;
     }
-
+  
+    // Validate truck height
+    console.log('Truck Height:', truckHeight);
     if (!truckHeight || parseFloat(truckHeight) <= 0) {
       setError('Please provide a valid truck height.');
       return;
     }
-
+  
+    // Validate truck weight
+    console.log('Truck Weight:', truckWeight);
     if (!truckWeight || parseFloat(truckWeight) <= 0) {
       setError('Please provide a valid truck weight.');
       return;
     }
-
+  
     // Fetch destination coordinates
     const { ORS_API_KEY } = await fetchEnvVariables();
     const coords = await fetchCoordinates(endAddress, ORS_API_KEY);
-    if (coords) {
-      setDestinationCoords(coords);
-      await fetchORSRoute();
+    console.log('Destination Coordinates:', coords);
+  
+    if (!coords) {
+      setError('Failed to fetch destination coordinates. Please check the address and try again.');
+      return;
     }
+  
+    setDestinationCoords(coords);
+    console.log('Destination Coordinates Set:', destinationCoords);
+  
+    // Fetch the route
+    await fetchORSRoute();
   };
+  
 
   return (
     <div className="route-planner">
