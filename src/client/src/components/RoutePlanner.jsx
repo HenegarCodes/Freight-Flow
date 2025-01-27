@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { GoogleMap, LoadScript, DirectionsRenderer, Marker } from '@react-google-maps/api';
+import Modal from 'react-modal';
+import axios from 'axios';
 import './RoutePlanner.css';
 
 const containerStyle = {
@@ -19,9 +21,12 @@ const RoutePlanner = () => {
   const [truckHeight, setTruckHeight] = useState('');
   const [truckWeight, setTruckWeight] = useState('');
   const [directionsResponse, setDirectionsResponse] = useState(null);
+  const [currentStepIndex, setCurrentStepIndex] = useState(0);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const mapRef = useRef(null);
+  const watchIdRef = useRef(null);
 
   const addStop = () => setStops([...stops, '']);
   const handleStopChange = (index, value) => {
@@ -37,67 +42,107 @@ const RoutePlanner = () => {
 
   useEffect(() => {
     if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
+      watchIdRef.current = navigator.geolocation.watchPosition(
         (position) => {
           const { latitude, longitude } = position.coords;
-          setCurrentLocation({ lat: latitude, lng: longitude });
+          const location = { lat: latitude, lng: longitude };
+          setCurrentLocation(location);
+          if (mapRef.current) mapRef.current.panTo(location);
         },
         (err) => {
-          console.error('Error fetching location:', err.message);
-          setError('Failed to fetch location. Please enable location services in your browser.');
+          console.error('Geolocation error:', err.message);
+          setError('Failed to get current location. Enable location services.');
         },
         { enableHighAccuracy: true }
       );
     } else {
       setError('Geolocation is not supported by your browser.');
     }
+
+    return () => {
+      if (watchIdRef.current) navigator.geolocation.clearWatch(watchIdRef.current);
+    };
   }, []);
 
   const fetchRoute = () => {
+    if (!currentLocation || !endAddress) {
+      setError('Please provide all required fields.');
+      return;
+    }
+
     setLoading(true);
     const directionsService = new window.google.maps.DirectionsService();
-
     directionsService.route(
       {
         origin: currentLocation,
         destination: endAddress,
         waypoints: stops.map((stop) => ({ location: stop, stopover: true })),
         travelMode: window.google.maps.TravelMode.DRIVING,
+        drivingOptions: {
+          departureTime: new Date(), // Required for traffic-based adjustments
+          trafficModel: 'optimistic', // Choose traffic model
+        },
       },
       (result, status) => {
         setLoading(false);
         if (status === window.google.maps.DirectionsStatus.OK) {
           setDirectionsResponse(result);
+          saveTrip(result);
           setError('');
         } else {
           console.error('Error fetching route:', status);
-          setError('Failed to fetch route. Please check your input and try again.');
+          setError('Failed to fetch route. Please try again.');
         }
       }
     );
   };
 
+  const saveTrip = async (route) => {
+    const token = localStorage.getItem('token');
+    const decodedToken = JSON.parse(atob(token.split('.')[1]));
+    const userId = decodedToken.userId;
+
+    const optimizedRoute = {
+      distance: route.routes[0].legs.reduce((sum, leg) => sum + parseFloat(leg.distance.text), 0).toFixed(2) + ' mi',
+      duration: route.routes[0].legs.reduce((sum, leg) => sum + parseFloat(leg.duration.text), 0).toFixed(2) + ' mins',
+      waypoints: route.routes[0].legs.flatMap((leg) =>
+        leg.steps.map((step) => ({
+          start: step.start_location,
+          end: step.end_location,
+          instructions: step.instructions,
+        }))
+      ),
+    };
+
+    try {
+      await axios.post(
+        '/api/trips',
+        {
+          user: userId,
+          start: currentLocation,
+          end: endAddress,
+          stops,
+          truckHeight,
+          truckWeight,
+          route: optimizedRoute,
+        },
+        
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+    } catch (err) {
+      console.error('Error saving trip:', err.message);
+    }
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     setError('');
-
-    if (!currentLocation) {
-      setError('Current location is unavailable. Please enable location services.');
-      return;
-    }
-
-    if (!endAddress || endAddress.trim() === '') {
-      setError('Please provide a valid destination address.');
-      return;
-    }
-
-    if (stops.some((stop) => stop.trim() === '')) {
-      setError('Please fill out all stop fields or remove empty stops.');
-      return;
-    }
-
     fetchRoute();
   };
+
+  const openModal = () => setIsModalOpen(true);
+  const closeModal = () => setIsModalOpen(false);
 
   return (
     <div className="route-planner">
@@ -121,6 +166,7 @@ const RoutePlanner = () => {
                 value={stop}
                 onChange={(e) => handleStopChange(index, e.target.value)}
                 placeholder={`Enter stop ${index + 1}`}
+                required
               />
               <button type="button" className="remove-stop" onClick={() => removeStop(index)}>
                 ✕
@@ -131,12 +177,32 @@ const RoutePlanner = () => {
         <button type="button" onClick={addStop}>
           Add Stop
         </button>
+        <label>
+          Truck Height (ft):
+          <input
+            type="number"
+            value={truckHeight}
+            onChange={(e) => setTruckHeight(e.target.value)}
+            placeholder="Enter truck height"
+            required
+          />
+        </label>
+        <label>
+          Truck Weight (lbs):
+          <input
+            type="number"
+            value={truckWeight}
+            onChange={(e) => setTruckWeight(e.target.value)}
+            placeholder="Enter truck weight"
+            required
+          />
+        </label>
         <button type="submit" disabled={!currentLocation || loading}>
-          Fetch Route
+          Start Trip
         </button>
       </form>
 
-      {error && <p style={{ color: 'red' }}>{error}</p>}
+      {error && <p className="error">{error}</p>}
       {loading && <div className="spinner">Loading route...</div>}
 
       <LoadScript googleMapsApiKey={process.env.REACT_APP_GOOGLE_MAPS_API_KEY}>
