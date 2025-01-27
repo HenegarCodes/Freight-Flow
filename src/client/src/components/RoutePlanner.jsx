@@ -71,19 +71,35 @@ const RoutePlanner = () => {
 
   // Request current location
   useEffect(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          setCurrentLocation({ lat: latitude, lng: longitude });
-        },
-        (err) => {
-          console.error('Geolocation error:', err.message);
-          setError('Please enable location services.');
-        }
-      );
-    }
+    const requestLocation = () => {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const { latitude, longitude } = position.coords;
+            setCurrentLocation({ lat: latitude, lng: longitude });
+          },
+          (err) => {
+            console.error('Geolocation error:', err.message);
+            if (err.code === 1) {
+              setError('Location access denied. Please allow location access in your browser settings.');
+            } else if (err.code === 2) {
+              setError('Location unavailable. Ensure GPS is enabled.');
+            } else if (err.code === 3) {
+              setError('Location request timed out. Please try again.');
+            } else {
+              setError('Please enable location services.');
+            }
+          },
+          { enableHighAccuracy: true, timeout: 10000 }
+        );
+      } else {
+        setError('Geolocation is not supported by your browser.');
+      }
+    };
+  
+    requestLocation();
   }, []);
+  
 
   const handleSubmit = async (e) => {
     e.preventDefault();
