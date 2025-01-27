@@ -3,6 +3,7 @@ import './RoutePlanner.css';
 
 const RoutePlanner = () => {
   const [currentLocation, setCurrentLocation] = useState(null);
+  const [manualLocation, setManualLocation] = useState('');
   const [endAddress, setEndAddress] = useState('');
   const [stops, setStops] = useState([]);
   const [truckHeight, setTruckHeight] = useState('');
@@ -23,152 +24,81 @@ const RoutePlanner = () => {
   };
 
   useEffect(() => {
-    if (!window.H || !window.H.service) {
-      console.error('HERE Maps script not loaded correctly.');
-      setError('HERE Maps script failed to load.');
-      return;
-    }
-
-    const platform = new window.H.service.Platform({
-      apikey: process.env.REACT_APP_HERE_API_KEY,
-    });
-
-    const defaultLayers = platform.createDefaultLayers();
-
-    const map = new window.H.Map(
-      mapRef.current,
-      defaultLayers.vector.normal.map,
-      {
-        center: { lat: 33.336675, lng: -111.792417 },
-        zoom: 13,
-      }
-    );
-
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          const { latitude, longitude } = position.coords;
-          setCurrentLocation({ lat: latitude, lng: longitude });
-          map.setCenter({ lat: latitude, lng: longitude });
+          setCurrentLocation({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          });
           setError('');
         },
-        (err) => {
-          console.error('Geolocation error:', err.message);
-          setError('Please enable location services.');
+        (error) => {
+          if (error.code === error.PERMISSION_DENIED) {
+            setError(
+              'Location services are disabled. Please enable location services in your browser or device settings.'
+            );
+          } else {
+            setError('Unable to retrieve your location. You can manually enter your starting point.');
+          }
         },
         { enableHighAccuracy: true }
       );
     } else {
       setError('Geolocation is not supported by your browser.');
     }
-
-    return () => map.dispose();
   }, []);
 
-  const fetchRoute = async () => {
-    if (!window.H || !window.H.service) {
-      setError('HERE Maps service is unavailable.');
+  const fetchRoute = () => {
+    if (!currentLocation && !manualLocation) {
+      setError('Please provide your starting location.');
       return;
     }
-  
-    const platform = new window.H.service.Platform({
-      apikey: process.env.REACT_APP_HERE_API_KEY,
+    if (!endAddress) {
+      setError('Please provide a destination address.');
+      return;
+    }
+
+    // Call HERE API with either geolocation or manual location
+    console.log('Fetching route...', {
+      start: currentLocation || manualLocation,
+      end: endAddress,
+      stops,
+      truckHeight,
+      truckWeight,
     });
-  
-    const routingService = platform.getRoutingService(null, 8);
-  
-    // Validate current location
-    if (!currentLocation || !currentLocation.lat || !currentLocation.lng) {
-      setError('Current location is unavailable.');
-      return;
-    }
-  
-    // Convert truck height to meters
-    const heightInMeters = parseFloat(truckHeight) * 0.3048; // Convert feet to meters
-  
-    if (!heightInMeters || heightInMeters <= 0) {
-      setError('Invalid truck height. Ensure a valid height is provided.');
-      return;
-    }
-  
-    // Define waypoints
-    const waypoints = [
-      `geo!${currentLocation.lat},${currentLocation.lng}`, // Starting point
-      ...stops.map((stop) => `geo!${stop}`), // Intermediate stops
-      `geo!${endAddress}`, // Destination
-    ];
-  
-    // Truck restrictions parameters
-    const truckParams = `height=${heightInMeters}`;
-  
-    // Routing request parameters
-    const requestParams = {
-      mode: 'fastest;truck',
-      ...waypoints.reduce((acc, waypoint, index) => {
-        acc[`waypoint${index}`] = waypoint;
-        return acc;
-      }, {}),
-      representation: 'overview',
-      truck: truckParams, // Properly formatted truck params
-    };
-  
-    console.log('Routing request params:', requestParams);
-  
-    // Perform the routing request
-    routingService.calculateRoute(
-      requestParams,
-      (result) => {
-        if (result.response && result.response.route) {
-          console.log('Route result:', result.response.route);
-          setError('');
-        } else {
-          console.error('Invalid response format:', result);
-          setError('Failed to fetch route.');
-        }
-      },
-      (err) => {
-        console.error('Error fetching route:', err);
-        setError('Failed to fetch route. Please check your inputs and try again.');
-      }
-    );
+
+    setError('');
+    // Add your HERE API logic here
   };
-  
-  
-    
-  
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    setError('');
-  
-    // Validate fields
-    if (!currentLocation) {
-      setError('Current location is unavailable. Please enable location services.');
-      return;
-    }
-  
-    if (!endAddress || endAddress.trim() === '') {
-      setError('Please provide a valid destination address.');
-      return;
-    }
-  
-    if (stops.some((stop) => stop.trim() === '')) {
-      setError('Please fill out all stop fields or remove empty stops.');
-      return;
-    }
-  
-    if (!truckHeight || parseFloat(truckHeight) <= 0) {
-      setError('Please provide a valid truck height.');
-      return;
-    }
-  
-    // Fetch the route
     fetchRoute();
   };
-  
+
   return (
     <div className="route-planner">
       <form onSubmit={handleSubmit} className="route-form">
+        {error && <p style={{ color: 'red' }}>{error}</p>}
+
+        {!currentLocation && (
+          <>
+            <label>
+              Manual Starting Point:
+              <input
+                type="text"
+                value={manualLocation}
+                onChange={(e) => setManualLocation(e.target.value)}
+                placeholder="Enter your starting point"
+              />
+            </label>
+            <p style={{ fontStyle: 'italic', color: 'gray' }}>
+              Location services are disabled. Please manually enter your starting location.
+            </p>
+          </>
+        )}
+
         <label>
           Destination Address:
           <input
@@ -179,6 +109,7 @@ const RoutePlanner = () => {
             required
           />
         </label>
+
         {stops.map((stop, index) => (
           <div key={index} className="stop-field">
             <label>
@@ -198,6 +129,7 @@ const RoutePlanner = () => {
         <button type="button" onClick={addStop}>
           Add Stop
         </button>
+
         <label>
           Truck Height (ft):
           <input
@@ -208,11 +140,22 @@ const RoutePlanner = () => {
             required
           />
         </label>
+
+        <label>
+          Truck Weight (lbs):
+          <input
+            type="number"
+            value={truckWeight}
+            onChange={(e) => setTruckWeight(e.target.value)}
+            placeholder="Enter truck weight"
+            required
+          />
+        </label>
+
         <button type="submit">Fetch Route</button>
       </form>
 
       <div className="map-container" ref={mapRef} />
-      {error && <p style={{ color: 'red' }}>{error}</p>}
     </div>
   );
 };
