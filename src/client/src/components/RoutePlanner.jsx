@@ -70,9 +70,11 @@ const RoutePlanner = () => {
       }
   
       const data = await response.json();
+      console.log('API Response:', data);
   
       if (!data.routes || !data.routes.length) {
-        throw new Error('No routes found in the API response.');
+        setError('No valid route found. Adjust truck restrictions or check the destination.');
+        return;
       }
   
       const coordinates = data.routes[0].geometry.coordinates.map(([lng, lat]) => ({
@@ -86,6 +88,7 @@ const RoutePlanner = () => {
       setError(err.message || 'Failed to fetch route. Please try again.');
     }
   };
+  
   
 
   // Trigger route fetching when destinationCoordinates is updated
