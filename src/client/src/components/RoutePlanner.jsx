@@ -15,30 +15,51 @@ const center = {
 const RoutePlanner = () => {
   const [currentLocation, setCurrentLocation] = useState(null);
   const [endAddress, setEndAddress] = useState('');
+  const [destinationCoords, setDestinationCoords] = useState(null);
   const [routeCoordinates, setRouteCoordinates] = useState([]);
   const [truckHeight, setTruckHeight] = useState('');
   const [truckWeight, setTruckWeight] = useState('');
   const [error, setError] = useState('');
   const mapRef = useRef(null);
 
-  // Fetch environment variables dynamically from the Render backend
   const fetchEnvVariables = async () => {
-    const response = await fetch('/api/env'); // Assuming your backend exposes an `/api/env` endpoint
+    const response = await fetch('/api/env');
     const data = await response.json();
     return data;
   };
 
+  const fetchCoordinates = async (address, apiKey) => {
+    try {
+      const response = await fetch(
+        `https://api.openrouteservice.org/geocode/search?api_key=${apiKey}&text=${encodeURIComponent(address)}`
+      );
+
+      if (!response.ok) throw new Error('Failed to fetch coordinates');
+      const data = await response.json();
+
+      if (data.features.length === 0) {
+        throw new Error('No coordinates found for this address');
+      }
+
+      return data.features[0].geometry.coordinates;
+    } catch (err) {
+      console.error('Geocoding error:', err);
+      setError('Failed to geocode the destination address. Please check and try again.');
+      return null;
+    }
+  };
+
   const fetchORSRoute = async () => {
     try {
-      const { ORS_API_KEY } = await fetchEnvVariables(); // Get ORS API key
+      const { ORS_API_KEY } = await fetchEnvVariables();
 
-      if (!currentLocation || !endAddress) {
+      if (!currentLocation || !destinationCoords) {
         setError('Please provide both current location and destination.');
         return;
       }
 
       const response = await fetch(
-        `https://api.openrouteservice.org/v2/directions/truck?api_key=${ORS_API_KEY}&start=${currentLocation.lng},${currentLocation.lat}&end=${endAddress}&maximum_height=${truckHeight}&maximum_weight=${truckWeight}`
+        `https://api.openrouteservice.org/v2/directions/truck?api_key=${ORS_API_KEY}&start=${currentLocation.lng},${currentLocation.lat}&end=${destinationCoords[0]},${destinationCoords[1]}&maximum_height=${truckHeight}&maximum_weight=${truckWeight}`
       );
 
       if (!response.ok) {
@@ -49,13 +70,12 @@ const RoutePlanner = () => {
       const coordinates = data.routes[0].geometry.coordinates.map(([lng, lat]) => ({ lat, lng }));
       setRouteCoordinates(coordinates);
     } catch (err) {
-      console.error(err);
-      setError('Failed to fetch route. Please try again.');
+      console.error('Route fetching error:', err);
+      setError('Failed to fetch the route. Please try again.');
     }
   };
 
   useEffect(() => {
-    // Request current location from the browser
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -74,7 +94,6 @@ const RoutePlanner = () => {
     e.preventDefault();
     setError('');
 
-    // Validate fields
     if (!currentLocation) {
       setError('Current location is unavailable. Please enable location services.');
       return;
@@ -95,8 +114,13 @@ const RoutePlanner = () => {
       return;
     }
 
-    // Fetch the route
-    await fetchORSRoute();
+    // Fetch destination coordinates
+    const { ORS_API_KEY } = await fetchEnvVariables();
+    const coords = await fetchCoordinates(endAddress, ORS_API_KEY);
+    if (coords) {
+      setDestinationCoords(coords);
+      await fetchORSRoute();
+    }
   };
 
   return (
@@ -138,7 +162,7 @@ const RoutePlanner = () => {
       {error && <p style={{ color: 'red' }}>{error}</p>}
 
       <LoadScript
-        googleMapsApiKey={process.env.REACT_APP_GOOGLE_MAPS_API_KEY} // Still coming from frontend env
+        googleMapsApiKey={process.env.REACT_APP_GOOGLE_MAPS_API_KEY}
       >
         <GoogleMap
           mapContainerStyle={containerStyle}

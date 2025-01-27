@@ -33,6 +33,12 @@ const resolvers = {
     hello: () => 'Hello from GraphQL!',
   },
 };
+app.get('/api/env', (req, res) => {
+  res.json({
+    ORS_API_KEY: process.env.ORS_API_KEY, // Expose ORS API key
+  });
+});
+
 
 async function startApolloServer(typeDefs, resolvers) {
   const apolloServer = new ApolloServer({ typeDefs, resolvers });
