@@ -2,30 +2,29 @@ const express = require('express');
 const fetch = require('node-fetch');
 const router = express.Router();
 
-// Fetch route from OpenRouteService
-router.get('/ors-route', async (req, res) => {
-  const { start, end, truckHeight, truckWeight } = req.query;
+router.get('/geocode', async (req, res) => {
+  const { text } = req.query;
+  const ORS_API_KEY = process.env.ORS_API_KEY;
 
-  if (!start || !end || !truckHeight || !truckWeight) {
-    return res.status(400).json({ error: 'Missing required parameters' });
+  if (!ORS_API_KEY) {
+    return res.status(500).json({ error: 'Missing ORS API Key in the backend' });
   }
 
+  const url = `https://api.openrouteservice.org/geocode/search?api_key=${ORS_API_KEY}&text=${encodeURIComponent(
+    text
+  )}`;
+
   try {
-    const ORS_API_KEY = process.env.ORS_API_KEY;
-
-    const response = await fetch(
-      `https://api.openrouteservice.org/v2/directions/driving-hgv?api_key=${ORS_API_KEY}&start=${start}&end=${end}&maximum_height=${truckHeight}&maximum_weight=${truckWeight}`
-    );
-
+    const response = await fetch(url);
     if (!response.ok) {
-      throw new Error('Failed to fetch route from OpenRouteService');
+      throw new Error(`Error from ORS API: ${response.statusText}`);
     }
 
     const data = await response.json();
     res.json(data);
   } catch (err) {
-    console.error('Error fetching route:', err.message);
-    res.status(500).json({ error: 'Failed to fetch route from OpenRouteService' });
+    console.error('Error fetching from ORS API:', err.message);
+    res.status(500).json({ error: 'Failed to fetch geocoding data' });
   }
 });
 
