@@ -25,21 +25,22 @@ const RoutePlanner = () => {
   // Fetch destination coordinates from address
   const getCoordinatesFromAddress = async (address) => {
     try {
-      const ORS_API_KEY = 'your-api-key-here';
+      const ORS_API_KEY = process.env.REACT_APP_ORS_API_KEY; // Use from environment variables
       const response = await fetch(
         `https://api.openrouteservice.org/geocode/search?api_key=${ORS_API_KEY}&text=${encodeURIComponent(address)}`
       );
 
       if (!response.ok) {
-        throw new Error('Failed to fetch destination coordinates');
+        throw new Error('Failed to fetch destination coordinates. Please check the address.');
       }
 
       const data = await response.json();
-      const coordinates = data.features[0].geometry.coordinates;
+      const coordinates = data.features[0]?.geometry?.coordinates;
+      if (!coordinates) throw new Error('No coordinates found for the provided address.');
       return [coordinates[0], coordinates[1]]; // lng, lat
     } catch (err) {
       console.error('Geocoding error:', err.message);
-      setError('Failed to fetch destination coordinates.');
+      setError('Failed to fetch destination coordinates. Try again.');
       return null;
     }
   };
@@ -51,17 +52,21 @@ const RoutePlanner = () => {
         throw new Error('Current location or destination coordinates are missing.');
       }
 
-      const ORS_API_KEY = '5b3ce3597851110001cf62486b2de50d91c74f5a8a6483198b519885';
+      const ORS_API_KEY = process.env.REACT_APP_ORS_API_KEY; // Use from environment variables
       const response = await fetch(
         `https://api.openrouteservice.org/v2/directions/driving-hgv?api_key=${ORS_API_KEY}&start=${currentLocation.lng},${currentLocation.lat}&end=${destinationCoordinates[0]},${destinationCoordinates[1]}&maximum_height=${truckHeight}&maximum_weight=${truckWeight}`
       );
 
       if (!response.ok) {
-        throw new Error('Failed to fetch route from OpenRouteService');
+        throw new Error('Failed to fetch route. Ensure all inputs are correct.');
       }
 
       const data = await response.json();
-      const coordinates = data.routes[0].geometry.coordinates.map(([lng, lat]) => ({ lat, lng }));
+      const coordinates = data.routes[0]?.geometry?.coordinates.map(([lng, lat]) => ({
+        lat,
+        lng,
+      }));
+      if (!coordinates) throw new Error('Failed to fetch route coordinates.');
       setRouteCoordinates(coordinates);
     } catch (err) {
       console.error('Route fetching error:', err.message);
@@ -71,35 +76,30 @@ const RoutePlanner = () => {
 
   // Request current location
   useEffect(() => {
-    const requestLocation = () => {
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            const { latitude, longitude } = position.coords;
-            setCurrentLocation({ lat: latitude, lng: longitude });
-          },
-          (err) => {
-            console.error('Geolocation error:', err.message);
-            if (err.code === 1) {
-              setError('Location access denied. Please allow location access in your browser settings.');
-            } else if (err.code === 2) {
-              setError('Location unavailable. Ensure GPS is enabled.');
-            } else if (err.code === 3) {
-              setError('Location request timed out. Please try again.');
-            } else {
-              setError('Please enable location services.');
-            }
-          },
-          { enableHighAccuracy: true, timeout: 10000 }
-        );
-      } else {
-        setError('Geolocation is not supported by your browser.');
-      }
-    };
-  
-    requestLocation();
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          setCurrentLocation({ lat: latitude, lng: longitude });
+        },
+        (err) => {
+          console.error('Geolocation error:', err.message);
+          if (err.code === 1) {
+            setError('Location access denied. Please allow location access in your browser settings.');
+          } else if (err.code === 2) {
+            setError('Location unavailable. Ensure GPS is enabled.');
+          } else if (err.code === 3) {
+            setError('Location request timed out. Please try again.');
+          } else {
+            setError('Please enable location services.');
+          }
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    } else {
+      setError('Geolocation is not supported by your browser.');
+    }
   }, []);
-  
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -130,7 +130,7 @@ const RoutePlanner = () => {
       // Fetch destination coordinates
       const coordinates = await getCoordinatesFromAddress(endAddress);
       if (!coordinates) {
-        throw new Error('Failed to fetch destination coordinates');
+        throw new Error('Failed to fetch destination coordinates.');
       }
 
       setDestinationCoordinates(coordinates);
