@@ -48,31 +48,45 @@ const RoutePlanner = () => {
 
   // Fetch route from OpenRouteService
   const fetchORSRoute = async () => {
-    console.log('Current Location:', currentLocation);
-    console.log('Destination Coordinates:', destinationCoordinates);
-
     try {
       if (!currentLocation || !destinationCoordinates) {
         throw new Error('Current location or destination coordinates are missing.');
       }
-
+  
+      console.log('Fetching route...');
+      console.log('Current Location:', currentLocation);
+      console.log('Destination Coordinates:', destinationCoordinates);
+  
+      const ORS_API_KEY = '5b3ce3597851110001cf62486b2de50d91c74f5a8a6483198b519885';
       const response = await fetch(
         `https://api.openrouteservice.org/v2/directions/driving-hgv?api_key=${ORS_API_KEY}&start=${currentLocation.lng},${currentLocation.lat}&end=${destinationCoordinates[0]},${destinationCoordinates[1]}&maximum_height=${truckHeight}&maximum_weight=${truckWeight}`
       );
-
+  
       if (!response.ok) {
-        throw new Error('Failed to fetch route from OpenRouteService');
+        const errorData = await response.json();
+        throw new Error(
+          errorData.error?.message || 'Failed to fetch route from OpenRouteService'
+        );
       }
-
+  
       const data = await response.json();
-      const coordinates = data.routes[0].geometry.coordinates.map(([lng, lat]) => ({ lat, lng }));
+  
+      if (!data.routes || !data.routes.length) {
+        throw new Error('No routes found in the API response.');
+      }
+  
+      const coordinates = data.routes[0].geometry.coordinates.map(([lng, lat]) => ({
+        lat,
+        lng,
+      }));
       console.log('Route Coordinates:', coordinates);
       setRouteCoordinates(coordinates);
     } catch (err) {
       console.error('Route fetching error:', err.message);
-      setError('Failed to fetch route. Please try again.');
+      setError(err.message || 'Failed to fetch route. Please try again.');
     }
   };
+  
 
   // Trigger route fetching when destinationCoordinates is updated
   useEffect(() => {
