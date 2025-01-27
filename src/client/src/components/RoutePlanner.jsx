@@ -72,12 +72,12 @@ const RoutePlanner = () => {
       const data = await response.json();
       console.log('API Response:', data);
   
-      if (!data.routes || !data.routes.length) {
+      if (!data.features || data.features.length === 0) {
         setError('No valid route found. Adjust truck restrictions or check the destination.');
         return;
       }
   
-      const coordinates = data.routes[0].geometry.coordinates.map(([lng, lat]) => ({
+      const coordinates = data.features[0].geometry.coordinates.map(([lng, lat]) => ({
         lat,
         lng,
       }));
