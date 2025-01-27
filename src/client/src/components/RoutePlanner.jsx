@@ -51,7 +51,7 @@ const RoutePlanner = () => {
         throw new Error('Current location or destination coordinates are missing.');
       }
 
-      const ORS_API_KEY = 'your-api-key-here';
+      const ORS_API_KEY = '5b3ce3597851110001cf62486b2de50d91c74f5a8a6483198b519885';
       const response = await fetch(
         `https://api.openrouteservice.org/v2/directions/driving-hgv?api_key=${ORS_API_KEY}&start=${currentLocation.lng},${currentLocation.lat}&end=${destinationCoordinates[0]},${destinationCoordinates[1]}&maximum_height=${truckHeight}&maximum_weight=${truckWeight}`
       );
