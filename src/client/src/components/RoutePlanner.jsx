@@ -51,24 +51,17 @@ const RoutePlanner = () => {
 
   const fetchORSRoute = async (destinationCoords) => {
     try {
-      const { ORS_API_KEY } = await fetchEnvVariables();
-  
       console.log('Current Location:', currentLocation);
       console.log('Destination Coordinates:', destinationCoords);
   
-      if (!currentLocation || !destinationCoords) {
-        setError('Please provide both current location and destination.');
-        return;
-      }
-  
       const response = await fetch(
-        `https://api.openrouteservice.org/v2/directions/truck?api_key=${ORS_API_KEY}&start=${currentLocation.lng},${currentLocation.lat}&end=${destinationCoords[0]},${destinationCoords[1]}&maximum_height=${truckHeight}&maximum_weight=${truckWeight}`
+        `/api/route?start=${currentLocation.lng},${currentLocation.lat}&end=${destinationCoords[0]},${destinationCoords[1]}&height=${truckHeight}&weight=${truckWeight}`
       );
   
       console.log('ORS API Request:', response.url);
   
       if (!response.ok) {
-        throw new Error('Failed to fetch route from OpenRouteService');
+        throw new Error('Failed to fetch route from backend');
       }
   
       const data = await response.json();
@@ -81,6 +74,7 @@ const RoutePlanner = () => {
       setError('Failed to fetch the route. Please try again.');
     }
   };
+  
   
   useEffect(() => {
     if (navigator.geolocation) {
