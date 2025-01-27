@@ -10,7 +10,6 @@ const RoutePlanner = () => {
   const [truckWeight, setTruckWeight] = useState('');
   const [error, setError] = useState('');
   const mapRef = useRef(null);
-  const routeLayerRef = useRef(null);
 
   const addStop = () => setStops([...stops, '']);
   const handleStopChange = (index, value) => {
@@ -48,12 +47,22 @@ const RoutePlanner = () => {
       }
     );
 
-    // Add map interactions
     const behavior = new window.H.mapevents.Behavior(new window.H.mapevents.MapEvents(map));
-    window.H.ui.UI.createDefault(map, defaultLayers);
+    const ui = window.H.ui.UI.createDefault(map, defaultLayers);
 
-    // Save map reference for later use
-    routeLayerRef.current = map;
+    // Attempt to get the current location
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        setCurrentLocation({ lat: latitude, lng: longitude });
+        map.setCenter({ lat: latitude, lng: longitude });
+      },
+      (err) => {
+        console.error('Error fetching location:', err.message);
+        setError('Failed to fetch your location. Please enable location services in your browser.');
+      },
+      { enableHighAccuracy: true }
+    );
 
     return () => map.dispose();
   }, []);
@@ -68,99 +77,46 @@ const RoutePlanner = () => {
       apikey: process.env.REACT_APP_HERE_API_KEY,
     });
 
-    const geocodingService = platform.getSearchService();
     const routingService = platform.getRoutingService(null, 8);
 
-    try {
-      // Geocode endAddress to coordinates
-      const endLocation = await geocodeAddress(geocodingService, endAddress);
-      const waypoints = [
-        `geo!${currentLocation?.lat},${currentLocation?.lng}`,
-        ...stops.map((stop) => `geo!${stop}`),
-        `geo!${endLocation.lat},${endLocation.lng}`,
-      ];
+    const startLocation = currentLocation
+      ? `geo!${currentLocation.lat},${currentLocation.lng}`
+      : manualLocation;
 
-      // Fetch route from HERE Routing API
-      routingService.calculateRoute(
-        {
-          mode: 'fastest;truck',
-          waypoint0: waypoints[0],
-          waypoint1: waypoints[waypoints.length - 1],
-          representation: 'overview',
-          truck: {
-            height: parseFloat(truckHeight),
-            weight: parseFloat(truckWeight),
-          },
+    const waypoints = [
+      startLocation,
+      ...stops.map((stop) => `geo!${stop}`),
+      `geo!${endAddress}`,
+    ];
+
+    routingService.calculateRoute(
+      {
+        mode: 'fastest;truck',
+        waypoint0: waypoints[0],
+        waypoint1: waypoints[waypoints.length - 1],
+        representation: 'overview',
+        truck: {
+          height: parseFloat(truckHeight),
+          weight: parseFloat(truckWeight),
         },
-        (result) => {
-          if (result?.routes?.length > 0) {
-            renderRoute(result.routes[0]);
-            setError('');
-          } else {
-            setError('No route found. Please check your inputs.');
-          }
-        },
-        (err) => {
-          console.error('Error fetching route:', err);
-          setError('Failed to fetch route. Please try again.');
-        }
-      );
-    } catch (err) {
-      console.error('Error:', err);
-      setError('Failed to process your request. Please check your inputs and try again.');
-    }
-  };
-
-  const geocodeAddress = (geocodingService, address) => {
-    return new Promise((resolve, reject) => {
-      geocodingService.geocode(
-        { q: address },
-        (result) => {
-          if (result?.items?.length > 0) {
-            const location = result.items[0].position;
-            resolve(location);
-          } else {
-            reject(new Error('Failed to geocode address.'));
-          }
-        },
-        (err) => reject(err)
-      );
-    });
-  };
-
-  const renderRoute = (route) => {
-    if (!routeLayerRef.current) {
-      setError('Map is not initialized.');
-      return;
-    }
-
-    // Clear existing routes
-    routeLayerRef.current.getObjects().forEach((object) => routeLayerRef.current.removeObject(object));
-
-    // Add route to the map
-    const lineString = new window.H.geo.LineString();
-    route.sections.forEach((section) => {
-      section.polyline.split(',').forEach((point, index) => {
-        if (index % 2 === 0) {
-          lineString.pushLatLngAlt(parseFloat(point), parseFloat(section.polyline.split(',')[index + 1]));
-        }
-      });
-    });
-
-    const routeLine = new window.H.map.Polyline(lineString, {
-      style: { strokeColor: '#FF0000', lineWidth: 4 },
-    });
-
-    routeLayerRef.current.addObject(routeLine);
-    routeLayerRef.current.getViewModel().setLookAtData({ bounds: routeLine.getBoundingBox() });
+      },
+      (result) => {
+        console.log('Route result:', result);
+      },
+      (err) => {
+        console.error('Error fetching route:', err);
+        setError('Failed to fetch route. Please try again.');
+      }
+    );
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
     setError('');
 
-    if (!currentLocation) {
-      setError('Current location is unavailable. Please enable location services.');
+    // Validate fields
+    if (!currentLocation && !manualLocation.trim()) {
+      setError('Current location is unavailable. Please enable location services or provide a manual location.');
       return;
     }
 
@@ -184,13 +140,13 @@ const RoutePlanner = () => {
       return;
     }
 
+    // If all fields are valid, fetch the route
     fetchRoute();
   };
 
   return (
     <div className="route-planner">
       <form onSubmit={handleSubmit} className="route-form">
-        {error && <p style={{ color: 'red' }}>{error}</p>}
         <label>
           Destination Address:
           <input
@@ -240,9 +196,20 @@ const RoutePlanner = () => {
             required
           />
         </label>
+        <label>
+          Manual Location (Optional):
+          <input
+            type="text"
+            value={manualLocation}
+            onChange={(e) => setManualLocation(e.target.value)}
+            placeholder="Enter current location manually"
+          />
+        </label>
         <button type="submit">Fetch Route</button>
       </form>
+
       <div className="map-container" ref={mapRef} />
+      {error && <p style={{ color: 'red' }}>{error}</p>}
     </div>
   );
 };
