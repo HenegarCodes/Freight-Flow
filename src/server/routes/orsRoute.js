@@ -1,77 +1,46 @@
-
 const express = require('express');
 const axios = require('axios');
 const router = express.Router();
-const { orsApiKey } = require('../config');
-const Trip = require('../models/Trip'); 
 
+// OpenRouteService API endpoint
+const ORS_API_URL = 'https://api.openrouteservice.org/v2/directions/driving-hgv';
 
-router.get('/geocode', async (req, res) => {
-  const { address } = req.query;
+router.post('/ors', async (req, res) => {
   try {
-    const response = await axios.get(
-      `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(
-        address
-      )}&key=${process.env.GOOGLE_MAPS_API_KEY}`
-    );
-    if (response.data.status !== 'OK') {
-      return res.status(400).json({ error: 'Failed to fetch geocoding data.' });
-    }
-    const location = response.data.results[0].geometry.location;
-    res.json({ latitude: location.lat, longitude: location.lng });
-  } catch (error) {
-    console.error('Geocoding error:', error);
-    res.status(500).json({ error: 'Internal server error.' });
-  }
-});
+    // Get request data from the frontend
+    const { start, end, stops, truckHeight } = req.body;
 
-router.get('/route', async (req, res) => {
-  const { start, end } = req.query;
-  try {
-    const response = await axios.get(
-      `https://maps.googleapis.com/maps/api/directions/json?origin=${start}&destination=${end}&key=${process.env.GOOGLE_MAPS_API_KEY}`
-    );
-    if (response.data.status !== 'OK') {
-      return res.status(400).json({ error: 'Failed to fetch routing data.' });
-    }
-    res.json(response.data);
-  } catch (error) {
-    console.error('Routing error:', error);
-    res.status(500).json({ error: 'Internal server error.' });
-  }
-});
-router.post('/trips', async (req, res) => {
-  try {
-    console.log('Request payload:', req.body);
+    // Build waypoints for ORS API
+    const waypoints = [`${start.lat},${start.lng}`, ...stops, `${end.lat},${end.lng}`];
 
-    const { user, start, end, stops, truckHeight, truckWeight, route } = req.body;
+    // Construct the request payload
+    const payload = {
+      coordinates: waypoints.map((waypoint) =>
+        waypoint.split(',').map((coord) => parseFloat(coord))
+      ),
+      elevation: false,
+      extra_info: ['truckRestrictions'],
+      options: {
+        truck: {
+          height: parseFloat(truckHeight),
+        },
+      },
+    };
 
-    // Check for missing fields
-    if (!user || !start || !end || !route) {
-      console.error('Missing required fields');
-      return res.status(400).json({ error: 'Missing required fields' });
-    }
-
-    const newTrip = new Trip({
-      user,
-      start,
-      end,
-      stops,
-      truckHeight,
-      truckWeight,
-      route,
+    // Make the request to ORS
+    const orsResponse = await axios.post(ORS_API_URL, payload, {
+      headers: {
+        Authorization: process.env.ORS_API_KEY, // Use Render to securely inject the API key
+        'Content-Type': 'application/json',
+      },
     });
 
-    const savedTrip = await newTrip.save();
-    console.log('Trip saved:', savedTrip);
-
-    res.status(201).json(savedTrip);
-  } catch (error) {
-    console.error('Error saving trip:', error.message);
-    res.status(500).json({ error: 'Internal Server Error' });
+    // Send the ORS response back to the frontend
+    res.json(orsResponse.data);
+  } catch (err) {
+    console.error('Error in /api/ors:', err.response?.data || err.message);
+    res.status(500).json({ error: 'Failed to fetch route from OpenRouteService' });
   }
 });
-
-
 
 module.exports = router;
