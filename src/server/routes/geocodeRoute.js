@@ -1,23 +1,28 @@
-
 const express = require('express');
-const axios = require('axios');
+const fetch = require('node-fetch');
 const router = express.Router();
-const { orsApiKey } = require('../config'); 
 
 router.get('/geocode', async (req, res) => {
   const { address } = req.query;
+
+  if (!address) {
+    return res.status(400).json({ error: 'Address is required' });
+  }
+
   try {
-    const response = await axios.get(`https://api.openrouteservice.org/geocode/search`, {
-      params: {
-        api_key: orsApiKey,
-        text: address,
-      },
-    });
-    const coordinates = response.data.features[0].geometry.coordinates;
-    res.json({ latitude: coordinates[1], longitude: coordinates[0] });
-  } catch (error) {
-    console.error("Error fetching geocode data:", error.message);
-    res.status(500).json({ error: error.message });
+    const response = await fetch(
+      `https://api.openrouteservice.org/geocode/search?api_key=${process.env.ORS_API_KEY}&text=${encodeURIComponent(address)}`
+    );
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch geocoding data');
+    }
+
+    const data = await response.json();
+    res.json(data);
+  } catch (err) {
+    console.error('Geocoding API error:', err.message);
+    res.status(500).json({ error: 'Failed to fetch geocoding data' });
   }
 });
 
