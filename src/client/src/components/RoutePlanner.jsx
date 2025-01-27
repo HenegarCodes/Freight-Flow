@@ -25,15 +25,12 @@ const RoutePlanner = () => {
   // Fetch destination coordinates from address
   const getCoordinatesFromAddress = async (address) => {
     try {
-      const ORS_API_KEY = process.env.REACT_APP_ORS_API_KEY; // Use from environment variables
-      const response = await fetch(
-        `https://api.openrouteservice.org/geocode/search?api_key=${ORS_API_KEY}&text=${encodeURIComponent(address)}`
-      );
-
+      const response = await fetch(`/api/ors/geocode?text=${encodeURIComponent(address)}`);
+  
       if (!response.ok) {
-        throw new Error('Failed to fetch destination coordinates. Please check the address.');
+        throw new Error('Failed to fetch destination coordinates');
       }
-
+  
       const data = await response.json();
       const coordinates = data.features[0]?.geometry?.coordinates;
       if (!coordinates) throw new Error('No coordinates found for the provided address.');
@@ -44,6 +41,7 @@ const RoutePlanner = () => {
       return null;
     }
   };
+  
 
   // Fetch route from OpenRouteService
   const fetchORSRoute = async () => {
