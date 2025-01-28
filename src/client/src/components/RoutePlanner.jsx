@@ -89,70 +89,67 @@ const RoutePlanner = () => {
   };
 
   // Save the route and mark it as completed
-// Save the route and mark it as completed
-const handleEndRoute = async () => {
-  try {
-    if (!routeCoordinates || routeCoordinates.length === 0) {
-      throw new Error('No route available to save.');
+  const handleEndRoute = async () => {
+    try {
+      if (!routeCoordinates || routeCoordinates.length === 0) {
+        throw new Error('No route available to save.');
+      }
+  
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('User not authenticated. Please log in again.');
+      }
+  
+      // Decode token to get userId (or replace this with your authentication logic)
+      const decodedToken = JSON.parse(atob(token.split('.')[1]));
+      const userId = decodedToken?.userId;
+  
+      if (!userId) {
+        throw new Error('Failed to retrieve user ID. Please log in again.');
+      }
+  
+      // Assume distance and duration were calculated and stored when fetching the route
+      const tripData = {
+        user: userId,
+        start: currentLocation, // Current starting location { lat, lng }
+        end: endAddress, // User-provided destination address
+        stops: [], // Add stops if applicable
+        truckHeight: truckHeight.toString(),
+        truckWeight: truckWeight.toString(),
+        route: {
+          coordinates: routeCoordinates, // The route coordinates array
+          distance: `${(routeCoordinates.length * 1.609).toFixed(2)} mi`, // Replace with your actual distance calculation logic
+          duration: `${(routeCoordinates.length * 2).toFixed(0)} mins`, // Replace with your actual duration calculation logic
+        },
+      };
+  
+      console.log('Trip Data Sent to Backend:', tripData);
+  
+      const response = await fetch('/api/trips', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(tripData),
+      });
+  
+      if (!response.ok) {
+        const error = await response.json();
+        console.error('Backend Error:', error);
+        throw new Error(error.error || 'Failed to save the trip');
+      }
+  
+      alert('Route completed and saved successfully!');
+      setRouteCoordinates([]); // Clear the map
+      setRouteActive(false); // Reset the active route state
+    } catch (err) {
+      console.error('Error saving route:', err.message);
+      setError(err.message || 'Failed to save the route.');
     }
-
-    const token = localStorage.getItem('token');
-    if (!token) {
-      throw new Error('User not authenticated. Please log in again.');
-    }
-
-    // Decode token to get userId (or replace this with your authentication logic)
-    const decodedToken = JSON.parse(atob(token.split('.')[1]));
-    const userId = decodedToken?.userId;
-
-    if (!userId) {
-      throw new Error('Failed to retrieve user ID. Please log in again.');
-    }
-
-    // Mock distance and duration, replace with real values from API if available
-    const distanceInMeters = 16093.4; // Example: Replace with actual API response value (e.g., 10 miles)
-    const durationInSeconds = 1800; // Example: Replace with actual API response value (e.g., 30 mins)
-
-    const tripData = {
-      user: userId,
-      start: currentLocation, // Current starting location { lat, lng }
-      end: endAddress, // User-provided destination address
-      stops: [], // Add stops if applicable
-      truckHeight: truckHeight.toString(),
-      truckWeight: truckWeight.toString(),
-      route: {
-        coordinates: routeCoordinates, // The route coordinates array
-        distance: `${(distanceInMeters / 1609.34).toFixed(2)} mi`, // Convert meters to miles
-        duration: `${(durationInSeconds / 60).toFixed(0)} mins`, // Convert seconds to minutes
-      },
-    };
-
-    console.log('Trip Data Sent to Backend:', tripData);
-
-    const response = await fetch('/api/trips', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(tripData),
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      console.error('Backend Error:', error);
-      throw new Error(error.error || 'Failed to save the trip');
-    }
-
-    alert('Route completed and saved successfully!');
-    setRouteCoordinates([]); // Clear the map
-    setRouteActive(false); // Reset the active route state
-  } catch (err) {
-    console.error('Error saving route:', err.message);
-    setError(err.message || 'Failed to save the route.');
-  }
-};
-
+  };
+  
+  
   
   
 
