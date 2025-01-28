@@ -19,6 +19,7 @@ const RoutePlanner = () => {
   const [routeCoordinates, setRouteCoordinates] = useState([]);
   const [truckHeight, setTruckHeight] = useState('');
   const [truckWeight, setTruckWeight] = useState('');
+  const [routeActive, setRouteActive] = useState(false);
   const [error, setError] = useState('');
   const mapRef = useRef(null);
 
@@ -52,44 +53,85 @@ const RoutePlanner = () => {
       if (!currentLocation || !destinationCoordinates) {
         throw new Error('Current location or destination coordinates are missing.');
       }
-  
+
       console.log('Fetching route...');
       console.log('Current Location:', currentLocation);
       console.log('Destination Coordinates:', destinationCoordinates);
-  
-      const ORS_API_KEY = '5b3ce3597851110001cf62486b2de50d91c74f5a8a6483198b519885';
+
       const response = await fetch(
         `https://api.openrouteservice.org/v2/directions/driving-hgv?api_key=${ORS_API_KEY}&start=${currentLocation.lng},${currentLocation.lat}&end=${destinationCoordinates[0]},${destinationCoordinates[1]}&maximum_height=${truckHeight}&maximum_weight=${truckWeight}`
       );
-  
+
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(
-          errorData.error?.message || 'Failed to fetch route from OpenRouteService'
-        );
+        throw new Error(errorData.error?.message || 'Failed to fetch route from OpenRouteService');
       }
-  
+
       const data = await response.json();
       console.log('API Response:', data);
-  
+
       if (!data.features || data.features.length === 0) {
         setError('No valid route found. Adjust truck restrictions or check the destination.');
         return;
       }
-  
+
       const coordinates = data.features[0].geometry.coordinates.map(([lng, lat]) => ({
         lat,
         lng,
       }));
       console.log('Route Coordinates:', coordinates);
       setRouteCoordinates(coordinates);
+      setRouteActive(true); // Route is now active
     } catch (err) {
       console.error('Route fetching error:', err.message);
       setError(err.message || 'Failed to fetch route. Please try again.');
     }
   };
-  
-  
+
+  // Save the route and mark it as completed
+  const handleEndRoute = async () => {
+    try {
+      await fetch('/api/trips', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          start: currentLocation,
+          destination: destinationCoordinates,
+          route: routeCoordinates,
+          truckHeight,
+          truckWeight,
+          completedAt: new Date(),
+        }),
+      });
+      alert('Route completed and saved successfully!');
+      setRouteActive(false); // End the route
+      setRouteCoordinates([]); // Clear the map
+    } catch (err) {
+      console.error('Error saving route:', err.message);
+      setError('Failed to save the route.');
+    }
+  };
+
+  // Live tracking: Update user's current location
+  useEffect(() => {
+    if (routeActive) {
+      const watchId = navigator.geolocation.watchPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          const location = { lat: latitude, lng: longitude };
+          console.log('Live Location Update:', location);
+          setCurrentLocation(location);
+        },
+        (err) => {
+          console.error('Geolocation error:', err.message);
+          setError('Failed to track location.');
+        },
+        { enableHighAccuracy: true }
+      );
+
+      return () => navigator.geolocation.clearWatch(watchId); // Cleanup
+    }
+  }, [routeActive]);
 
   // Trigger route fetching when destinationCoordinates is updated
   useEffect(() => {
@@ -98,40 +140,27 @@ const RoutePlanner = () => {
     }
   }, [destinationCoordinates]);
 
-  // Request current location
+  // Request current location initially
   useEffect(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          const location = { lat: latitude, lng: longitude };
-          console.log('Fetched Current Location:', location);
-          setCurrentLocation(location);
-        },
-        (err) => {
-          console.error('Geolocation error:', err.message);
-          if (err.code === 1) {
-            setError('Location access denied. Please allow location access in your browser settings.');
-          } else if (err.code === 2) {
-            setError('Location unavailable. Ensure GPS is enabled.');
-          } else if (err.code === 3) {
-            setError('Location request timed out. Please try again.');
-          } else {
-            setError('Please enable location services.');
-          }
-        },
-        { enableHighAccuracy: true, timeout: 10000 }
-      );
-    } else {
-      setError('Geolocation is not supported by your browser.');
-    }
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        const location = { lat: latitude, lng: longitude };
+        console.log('Fetched Current Location:', location);
+        setCurrentLocation(location);
+      },
+      (err) => {
+        console.error('Geolocation error:', err.message);
+        setError('Please enable location services.');
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
   }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
-    // Validate fields
     if (!currentLocation) {
       setError('Current location is unavailable. Please enable location services.');
       return;
@@ -153,13 +182,12 @@ const RoutePlanner = () => {
     }
 
     try {
-      // Fetch destination coordinates
       const coordinates = await getCoordinatesFromAddress(endAddress);
       if (!coordinates) {
         throw new Error('Failed to fetch destination coordinates');
       }
 
-      setDestinationCoordinates(coordinates); // This will trigger the `useEffect` to fetch the route
+      setDestinationCoordinates(coordinates);
     } catch (err) {
       console.error('Error during route planning:', err.message);
       setError(err.message || 'An unexpected error occurred.');
@@ -203,6 +231,12 @@ const RoutePlanner = () => {
       </form>
 
       {error && <p style={{ color: 'red' }}>{error}</p>}
+
+      {routeActive && (
+        <button onClick={handleEndRoute} className="end-route-button">
+          End Route
+        </button>
+      )}
 
       <LoadScript googleMapsApiKey={process.env.REACT_APP_GOOGLE_MAPS_API_KEY}>
         <GoogleMap
