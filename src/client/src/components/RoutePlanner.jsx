@@ -21,6 +21,7 @@ const RoutePlanner = () => {
   const [truckWeight, setTruckWeight] = useState('');
   const [error, setError] = useState('');
   const mapRef = useRef(null);
+  const watchIdRef = useRef(null); // To store the watchPosition ID
 
   const ORS_API_KEY = '5b3ce3597851110001cf62486b2de50d91c74f5a8a6483198b519885'; // Your OpenRouteService API key
 
@@ -52,31 +53,30 @@ const RoutePlanner = () => {
       if (!currentLocation || !destinationCoordinates) {
         throw new Error('Current location or destination coordinates are missing.');
       }
-  
+
       console.log('Fetching route...');
       console.log('Current Location:', currentLocation);
       console.log('Destination Coordinates:', destinationCoordinates);
-  
-      const ORS_API_KEY = '5b3ce3597851110001cf62486b2de50d91c74f5a8a6483198b519885';
+
       const response = await fetch(
         `https://api.openrouteservice.org/v2/directions/driving-hgv?api_key=${ORS_API_KEY}&start=${currentLocation.lng},${currentLocation.lat}&end=${destinationCoordinates[0]},${destinationCoordinates[1]}&maximum_height=${truckHeight}&maximum_weight=${truckWeight}`
       );
-  
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(
           errorData.error?.message || 'Failed to fetch route from OpenRouteService'
         );
       }
-  
+
       const data = await response.json();
       console.log('API Response:', data);
-  
+
       if (!data.features || data.features.length === 0) {
         setError('No valid route found. Adjust truck restrictions or check the destination.');
         return;
       }
-  
+
       const coordinates = data.features[0].geometry.coordinates.map(([lng, lat]) => ({
         lat,
         lng,
@@ -88,8 +88,6 @@ const RoutePlanner = () => {
       setError(err.message || 'Failed to fetch route. Please try again.');
     }
   };
-  
-  
 
   // Trigger route fetching when destinationCoordinates is updated
   useEffect(() => {
@@ -98,15 +96,20 @@ const RoutePlanner = () => {
     }
   }, [destinationCoordinates]);
 
-  // Request current location
+  // Request current location and enable live tracking
   useEffect(() => {
     if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
+      watchIdRef.current = navigator.geolocation.watchPosition(
         (position) => {
           const { latitude, longitude } = position.coords;
           const location = { lat: latitude, lng: longitude };
-          console.log('Fetched Current Location:', location);
+          console.log('Updated Current Location:', location);
           setCurrentLocation(location);
+
+          // Optionally pan the map to the new location
+          if (mapRef.current) {
+            mapRef.current.panTo(location);
+          }
         },
         (err) => {
           console.error('Geolocation error:', err.message);
@@ -120,8 +123,15 @@ const RoutePlanner = () => {
             setError('Please enable location services.');
           }
         },
-        { enableHighAccuracy: true, timeout: 10000 }
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
       );
+
+      return () => {
+        // Clear the watchPosition listener when the component unmounts
+        if (watchIdRef.current) {
+          navigator.geolocation.clearWatch(watchIdRef.current);
+        }
+      };
     } else {
       setError('Geolocation is not supported by your browser.');
     }
