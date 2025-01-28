@@ -23,8 +23,9 @@ const RoutePlanner = () => {
   const [error, setError] = useState("");
   const mapRef = useRef(null);
 
-  const ORS_API_KEY = "5b3ce3597851110001cf62486b2de50d91c74f5a8a6483198b519885"; // Your OpenRouteService API key
+  const ORS_API_KEY = "5b3ce3597851110001cf62486b2de50d91c74f5a8a6483198b519885"; // OpenRouteService API key
 
+  // Fetch destination coordinates from address
   const getCoordinatesFromAddress = async (address) => {
     try {
       const response = await fetch(
@@ -46,6 +47,7 @@ const RoutePlanner = () => {
     }
   };
 
+  // Fetch route from OpenRouteService
   const fetchORSRoute = async () => {
     try {
       if (!currentLocation || !destinationCoordinates) {
@@ -93,58 +95,46 @@ const RoutePlanner = () => {
       return;
     }
 
-    // Calculate proximity to the destination
-    const distanceToDestination = Math.sqrt(
-      Math.pow(currentLocation.lat - destinationCoordinates[1], 2) +
-        Math.pow(currentLocation.lng - destinationCoordinates[0], 2)
-    );
+    try {
+      // Save the route
+      await fetch("/api/trips", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          start: currentLocation,
+          destination: destinationCoordinates,
+          route: routeCoordinates,
+          truckHeight,
+          truckWeight,
+          completedAt: new Date(),
+        }),
+      });
 
-    if (distanceToDestination < 0.001) {
-      try {
-        // Save the route
-        await fetch("/api/trips", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            start: currentLocation,
-            destination: destinationCoordinates,
-            route: routeCoordinates,
-            truckHeight,
-            truckWeight,
-            completedAt: new Date(),
-          }),
-        });
-
-        alert("Route completed and saved!");
-        setRouteActive(false); // End the route
-      } catch (err) {
-        console.error("Error saving route:", err.message);
-        setError("Failed to save the route.");
-      }
-    } else {
-      setError("You are not at the destination yet.");
+      alert("Route completed and saved!");
+      setRouteActive(false); // End the route
+    } catch (err) {
+      console.error("Error saving route:", err.message);
+      setError("Failed to save the route.");
     }
   };
 
   // Request current location
   useEffect(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          const location = { lat: latitude, lng: longitude };
-          console.log("Fetched Current Location:", location);
-          setCurrentLocation(location);
-        },
-        (err) => {
-          console.error("Geolocation error:", err.message);
-          setError("Please enable location services.");
-        },
-        { enableHighAccuracy: true, timeout: 10000 }
-      );
-    } else {
-      setError("Geolocation is not supported by your browser.");
-    }
+    const watchId = navigator.geolocation.watchPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        const location = { lat: latitude, lng: longitude };
+        console.log("Fetched Current Location:", location);
+        setCurrentLocation(location);
+      },
+      (err) => {
+        console.error("Geolocation error:", err.message);
+        setError("Please enable location services.");
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+
+    return () => navigator.geolocation.clearWatch(watchId); // Cleanup watcher
   }, []);
 
   const handleSubmit = async (e) => {
@@ -178,6 +168,7 @@ const RoutePlanner = () => {
       }
 
       setDestinationCoordinates(coordinates);
+      fetchORSRoute(); // Fetch route after coordinates are set
     } catch (err) {
       console.error("Error during route planning:", err.message);
       setError(err.message || "An unexpected error occurred.");
