@@ -11,7 +11,7 @@ const Home = () => {
           <p>Optimized routing, live tracking, and futuristic technology for trucking professionals.</p>
           <div className="hero-buttons">
             <button onClick={() => (window.location.href = '/signup')}>Get Started</button>
-            <button onClick={() => (window.location.href = '/learn-more')}>Learn More</button>
+            <button onClick={() => (window.location.href = '/signup')}>Learn More</button>
           </div>
         </div>
       </section>
