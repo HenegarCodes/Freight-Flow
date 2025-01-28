@@ -91,25 +91,18 @@ const RoutePlanner = () => {
   // Save the route and mark it as completed
   const handleEndRoute = async () => {
     try {
-      const tripData = {
-        start: currentLocation,
-        destination: destinationCoordinates,
-        truckHeight,
-        truckWeight,
-        completedAt: new Date(),
-        route: routeCoordinates.slice(0, 100), // Limit the number of points sent
-      };
-  
-      const response = await fetch('/api/trips', {
+      await fetch('/api/trips', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(tripData),
+        body: JSON.stringify({
+          start: currentLocation,
+          destination: destinationCoordinates,
+          route: routeCoordinates,
+          truckHeight,
+          truckWeight,
+          completedAt: new Date(),
+        }),
       });
-  
-      if (!response.ok) {
-        throw new Error('Failed to save the route.');
-      }
-  
       alert('Route completed and saved successfully!');
       setRouteActive(false); // End the route
       setRouteCoordinates([]); // Clear the map
@@ -118,7 +111,6 @@ const RoutePlanner = () => {
       setError('Failed to save the route.');
     }
   };
-  
 
   // Live tracking: Update user's current location
   useEffect(() => {
