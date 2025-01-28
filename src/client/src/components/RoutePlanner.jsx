@@ -23,8 +23,7 @@ const RoutePlanner = () => {
   const [error, setError] = useState('');
   const mapRef = useRef(null);
 
-  //const ORS_API_KEY = '5b3ce3597851110001cf62486b2de50d91c74f5a8a6483198b519885'; 
-  const ORS_API_KEY = process.env.REACT_APP_ORS_API_KEY;
+  const ORS_API_KEY = '5b3ce3597851110001cf62486b2de50d91c74f5a8a6483198b519885'; 
 
   // Fetch destination coordinates from address
   const getCoordinatesFromAddress = async (address) => {
