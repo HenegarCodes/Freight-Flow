@@ -15,7 +15,7 @@ const PORT = process.env.PORT || 5000;
 
 app.use(cors());
 
-app.use(express.json({ limit: '15mb' })); // Adjust 
+app.use(express.json({ limit: '15mb' })); 
 app.use(express.urlencoded({ extended: true, limit: '15mb' }));
 app.use(express.json());
 // Register routes
@@ -37,7 +37,7 @@ const resolvers = {
 };
 app.get('/api/env', (req, res) => {
   res.json({
-    ORS_API_KEY: process.env.ORS_API_KEY, // Expose ORS API key
+    ORS_API_KEY: process.env.ORS_API_KEY, 
   });
 });
 

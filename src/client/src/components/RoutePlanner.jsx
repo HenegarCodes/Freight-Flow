@@ -23,7 +23,7 @@ const RoutePlanner = () => {
   const [error, setError] = useState('');
   const mapRef = useRef(null);
 
-  const ORS_API_KEY = '5b3ce3597851110001cf62486b2de50d91c74f5a8a6483198b519885'; // Your OpenRouteService API key
+  //const ORS_API_KEY = '5b3ce3597851110001cf62486b2de50d91c74f5a8a6483198b519885'; 
 
   // Fetch destination coordinates from address
   const getCoordinatesFromAddress = async (address) => {
@@ -94,20 +94,20 @@ const RoutePlanner = () => {
       if (!routeCoordinates || routeCoordinates.length === 0) {
         throw new Error('No route available to save.');
       }
-  
+
       const token = localStorage.getItem('token');
       if (!token) {
         throw new Error('User not authenticated. Please log in again.');
       }
-  
-      // Decode token to get userId (or replace this with your authentication logic)
+
+      // Decode token to get userId 
       const decodedToken = JSON.parse(atob(token.split('.')[1]));
       const userId = decodedToken?.userId;
-  
+
       if (!userId) {
         throw new Error('Failed to retrieve user ID. Please log in again.');
       }
-  
+
       // Assume distance and duration were calculated and stored when fetching the route
       const tripData = {
         user: userId,
@@ -122,9 +122,9 @@ const RoutePlanner = () => {
           duration: `${(routeCoordinates.length * 2).toFixed(0)} mins`, // Replace with your actual duration calculation logic
         },
       };
-  
+
       console.log('Trip Data Sent to Backend:', tripData);
-  
+
       const response = await fetch('/api/trips', {
         method: 'POST',
         headers: {
@@ -133,13 +133,13 @@ const RoutePlanner = () => {
         },
         body: JSON.stringify(tripData),
       });
-  
+
       if (!response.ok) {
         const error = await response.json();
         console.error('Backend Error:', error);
         throw new Error(error.error || 'Failed to save the trip');
       }
-  
+
       alert('Route completed and saved successfully!');
       setRouteCoordinates([]); // Clear the map
       setRouteActive(false); // Reset the active route state
@@ -148,10 +148,6 @@ const RoutePlanner = () => {
       setError(err.message || 'Failed to save the route.');
     }
   };
-  
-  
-  
-  
 
   // Live tracking: Update user's current location
   useEffect(() => {
