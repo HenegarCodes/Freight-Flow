@@ -23,7 +23,7 @@ const RoutePlanner = () => {
   const [error, setError] = useState('');
   const mapRef = useRef(null);
 
-  const ORS_API_KEY = '5b3ce3597851110001cf62486b2de50d91c74f5a8a6483198b519885'; // Your OpenRouteService API key
+  const ORS_API_KEY = process.env.REACT_APP_ORS_API_KEY; // Securely fetch API key
 
   // Fetch destination coordinates from address
   const getCoordinatesFromAddress = async (address) => {
@@ -37,7 +37,9 @@ const RoutePlanner = () => {
       }
 
       const data = await response.json();
-      const coordinates = data.features[0].geometry.coordinates;
+      const coordinates = data.features[0]?.geometry.coordinates;
+      if (!coordinates) throw new Error('No coordinates found for the given address.');
+
       console.log('Fetched Destination Coordinates:', coordinates);
       return [coordinates[0], coordinates[1]]; // lng, lat
     } catch (err) {
@@ -94,11 +96,11 @@ const RoutePlanner = () => {
       if (!routeCoordinates || routeCoordinates.length === 0) {
         throw new Error('No route available to save.');
       }
-  
-      const userId = localStorage.getItem('userId'); // Ensure the user ID is retrieved dynamically
-      const distanceInMeters = apiResponse.features[0].properties.summary.distance; // Replace with actual response field
-      const durationInSeconds = apiResponse.features[0].properties.summary.duration; // Replace with actual response field
-  
+
+      const token = localStorage.getItem('token');
+      const decodedToken = JSON.parse(atob(token.split('.')[1]));
+      const userId = decodedToken?.userId;
+
       const tripData = {
         user: userId,
         start: currentLocation, // Object: { lat, lng }
@@ -107,35 +109,37 @@ const RoutePlanner = () => {
         truckHeight: truckHeight.toString(),
         truckWeight: truckWeight.toString(),
         route: {
-          coordinates: routeCoordinates, // Array of { lat, lng } from API response
-          distance: `${(distanceInMeters / 1609.34).toFixed(2)} mi`, // Convert meters to miles
-          duration: `${(durationInSeconds / 60).toFixed(0)} mins`, // Convert seconds to minutes
+          coordinates: routeCoordinates, // Array of { lat, lng }
+          distance: '10.5 mi', // Replace with actual data from the API
+          duration: '25 mins', // Replace with actual data from the API
         },
       };
-  
+
       console.log('Trip Data Sent to Backend:', tripData);
-  
+
       const response = await fetch('/api/trips', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify(tripData),
       });
-  
+
       if (!response.ok) {
         const error = await response.json();
         console.error('Backend Error:', error);
         throw new Error(error.error || 'Failed to save the trip');
       }
-  
+
       alert('Route completed and saved successfully!');
       setRouteCoordinates([]); // Clear the map
+      setRouteActive(false); // Reset route active state
     } catch (err) {
       console.error('Error saving route:', err.message);
       setError('Failed to save the route.');
     }
   };
-  
-  
 
   // Live tracking: Update user's current location
   useEffect(() => {
@@ -157,30 +161,6 @@ const RoutePlanner = () => {
       return () => navigator.geolocation.clearWatch(watchId); // Cleanup
     }
   }, [routeActive]);
-
-  // Trigger route fetching when destinationCoordinates is updated
-  useEffect(() => {
-    if (destinationCoordinates) {
-      fetchORSRoute();
-    }
-  }, [destinationCoordinates]);
-
-  // Request current location initially
-  useEffect(() => {
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords;
-        const location = { lat: latitude, lng: longitude };
-        console.log('Fetched Current Location:', location);
-        setCurrentLocation(location);
-      },
-      (err) => {
-        console.error('Geolocation error:', err.message);
-        setError('Please enable location services.');
-      },
-      { enableHighAccuracy: true, timeout: 10000 }
-    );
-  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
