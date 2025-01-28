@@ -101,14 +101,51 @@ const RoutePlanner = () => {
   };
 
   useEffect(() => {
-    return () => {
-      // Stop tracking on component unmount
-      if (watchId.current) {
-        navigator.geolocation.clearWatch(watchId.current);
+    const fetchLocation = () => {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const { latitude, longitude } = position.coords;
+            const location = { lat: latitude, lng: longitude };
+            console.log('Fetched Current Location:', location);
+            setCurrentLocation(location);
+            setError(''); // Clear any previous errors
+          },
+          (err) => {
+            console.error('Geolocation error:', err.message);
+            switch (err.code) {
+              case 1:
+                setError(
+                  'Location access denied. Please allow location access in your browser settings.'
+                );
+                break;
+              case 2:
+                setError('Location unavailable. Ensure GPS is enabled.');
+                break;
+              case 3:
+                setError('Location request timed out. Please try again.');
+                break;
+              default:
+                setError('Please enable location services.');
+            }
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 15000, // Increased timeout to 15 seconds
+            maximumAge: 0,
+          }
+        );
+      } else {
+        setError('Geolocation is not supported by your browser.');
       }
     };
+  
+    fetchLocation();
+  
+    const interval = setInterval(fetchLocation, 30000); // Recheck every 30 seconds in case location updates are needed
+    return () => clearInterval(interval); // Cleanup interval on unmount
   }, []);
-
+  
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
