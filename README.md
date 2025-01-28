@@ -91,12 +91,6 @@ This project is licensed under the [MIT License](https://choosealicense.com/lice
 
 ---
 
-## Badges
-
-![GitHub repo size](https://img.shields.io/github/repo-size/<your-username>/freight-flow)
-![GitHub top language](https://img.shields.io/github/languages/top/<your-username>/freight-flow)
-![GitHub license](https://img.shields.io/github/license/<your-username>/freight-flow)
-
 ## Features
 
 - **Customizable Truck Constraints**: Avoid height- or weight-restricted routes.
