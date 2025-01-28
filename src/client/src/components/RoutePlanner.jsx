@@ -91,15 +91,29 @@ const RoutePlanner = () => {
   // Save the route and mark it as completed
   const handleEndRoute = async () => {
     try {
+      if (!routeCoordinates || routeCoordinates.length === 0) {
+        throw new Error('No route available to save.');
+      }
+  
+      const userId = localStorage.getItem('userId'); // Ensure the user ID is retrieved dynamically
+      const distanceInMeters = apiResponse.features[0].properties.summary.distance; // Replace with actual response field
+      const durationInSeconds = apiResponse.features[0].properties.summary.duration; // Replace with actual response field
+  
       const tripData = {
-        start: currentLocation,
-        destination: destinationCoordinates,
-        route: routeCoordinates,
-        truckHeight,
-        truckWeight,
-        completedAt: new Date(),
+        user: userId,
+        start: currentLocation, // Object: { lat, lng }
+        end: endAddress, // String: Address
+        stops: [], // Array of stop addresses if applicable
+        truckHeight: truckHeight.toString(),
+        truckWeight: truckWeight.toString(),
+        route: {
+          coordinates: routeCoordinates, // Array of { lat, lng } from API response
+          distance: `${(distanceInMeters / 1609.34).toFixed(2)} mi`, // Convert meters to miles
+          duration: `${(durationInSeconds / 60).toFixed(0)} mins`, // Convert seconds to minutes
+        },
       };
-      console.log('Trip Data:', tripData); // Log the trip data
+  
+      console.log('Trip Data Sent to Backend:', tripData);
   
       const response = await fetch('/api/trips', {
         method: 'POST',
@@ -108,17 +122,19 @@ const RoutePlanner = () => {
       });
   
       if (!response.ok) {
-        throw new Error('Failed to save the trip');
+        const error = await response.json();
+        console.error('Backend Error:', error);
+        throw new Error(error.error || 'Failed to save the trip');
       }
   
       alert('Route completed and saved successfully!');
-      setRouteActive(false); // End the route
       setRouteCoordinates([]); // Clear the map
     } catch (err) {
       console.error('Error saving route:', err.message);
       setError('Failed to save the route.');
     }
   };
+  
   
 
   // Live tracking: Update user's current location

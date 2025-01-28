@@ -6,29 +6,32 @@ const verifyToken = require('../middleware/authMiddlewares');
 
 router.post('/', async (req, res) => {
   try {
-    console.log('Incoming Trip Data:', req.body); // Log the request data
-    const { start, destination, route, truckHeight, truckWeight, completedAt } = req.body;
+    const { user, start, end, stops, truckHeight, truckWeight, route } = req.body;
 
-    if (!start || !destination || !route || !completedAt) {
+    // Validate required fields
+    if (!user || !start || !end || !route) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
     const trip = new Trip({
+      user,
       start,
-      destination,
-      route,
+      end,
+      stops: stops || [],
       truckHeight,
       truckWeight,
-      completedAt,
+      route,
     });
 
-    await trip.save();
-    res.status(201).json({ message: 'Trip saved successfully', trip });
+    const savedTrip = await trip.save();
+    res.status(201).json({ message: 'Trip saved successfully', trip: savedTrip });
   } catch (err) {
     console.error('Error saving trip:', err.message);
-    res.status(500).json({ error: 'Failed to save trip' });
+    res.status(500).json({ error: 'Failed to save trip', details: err.message });
   }
 });
+
+module.exports = router;
 
 
 
