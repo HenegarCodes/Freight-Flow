@@ -3,6 +3,29 @@ const router = express.Router();
 const Trip = require('../models/Trip'); // Trip model
 const verifyToken = require('../middleware/authMiddlewares');
 
+
+router.post('/', async (req, res) => {
+  try {
+    const { start, destination, truckHeight, truckWeight, completedAt, route } = req.body;
+
+    // Save the trip to the database
+    const trip = new Trip({
+      start,
+      destination,
+      truckHeight,
+      truckWeight,
+      completedAt,
+      route,
+    });
+    await trip.save();
+
+    res.status(201).json({ message: 'Trip saved successfully!', trip });
+  } catch (err) {
+    console.error('Error saving trip:', err);
+    res.status(500).json({ error: 'Failed to save trip.' });
+  }
+});
+
 router.get('/recent', verifyToken, async (req, res) => {
   try {
     console.log('Fetching trips for user ID:', req.user.userId);
