@@ -102,6 +102,7 @@ const Dashboard = () => {
         <>
           <header className="dashboard-header">
             <h1>Welcome to Your Dashboard</h1>
+            <br />
             <p>Monitor recent trips, analyze performance, and improve efficiency.</p>
           </header>
 
